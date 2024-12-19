@@ -155,36 +155,381 @@ class AppStoreConnectServer {
           },
           required: ["groupId", "testerId"]
         }
-        },
-        // {
-        // name: "upload_screenshots",
-        // description: "Upload screenshots to App Store Connect",
-        // inputSchema: {
-        //   type: "object",
-        //   properties: {
-        //     appId: {
-        //       type: "string",
-        //       description: "The ID of the app"
-        //     },
-        //     screenshotPaths: {
-        //       type: "array",
-        //       items: {
-        //         type: "string"
-        //       },
-        //       description: "Array of file paths to screenshots"
-        //     },
-        //     locale: {
-        //       type: "string",
-        //       description: "Locale for the screenshots (e.g., 'en-US')",
-        //       default: "en-US"
-        //     }
-        //   },
-        //   required: ["appId", "screenshotPaths"]
-        // }
-        // }
-      ]
-    }
-    ));
+      }, {
+        name: "get_app_info",
+        description: "Get detailed information about a specific app",
+        inputSchema: {
+          type: "object", 
+          properties: {
+            appId: {
+              type: "string",
+              description: "The ID of the app to get information for"
+            },
+            include: {
+              type: "array",
+              items: {
+                type: "string",
+                enum: [
+                  "appClips",
+                  "appInfos",
+                  "appStoreVersions",
+                  "availableTerritories",
+                  "betaAppReviewDetail",
+                  "betaGroups",
+                  "betaLicenseAgreement",
+                  "builds",
+                  "endUserLicenseAgreement",
+                  "gameCenterEnabledVersions",
+                  "inAppPurchases",
+                  "preOrder",
+                  "prices",
+                  "reviewSubmissions"
+                ]
+              },
+              description: "Optional relationships to include in the response"
+            }
+          },
+          required: ["appId"]
+        }
+      }, {
+        name: "create_bundle_id",
+        description: "Register a new bundle ID for app development",
+        inputSchema: {
+          type: "object",
+          properties: {
+            identifier: {
+              type: "string",
+              description: "The bundle ID string (e.g., 'com.example.app')"
+            },
+            name: {
+              type: "string",
+              description: "A name for the bundle ID"
+            },
+            platform: {
+              type: "string",
+              enum: ["IOS", "MAC_OS", "UNIVERSAL"],
+              description: "The platform for this bundle ID"
+            },
+            seedId: {
+              type: "string",
+              description: "Your team's seed ID (optional)",
+              required: false
+            }
+          },
+          required: ["identifier", "name", "platform"]
+        }
+      }, {
+        name: "list_bundle_ids",
+        description: "Find and list bundle IDs that are registered to your team",
+        inputSchema: {
+          type: "object",
+          properties: {
+            limit: {
+              type: "number",
+              description: "Maximum number of bundle IDs to return (default: 100, max: 200)",
+              minimum: 1,
+              maximum: 200
+            },
+            sort: {
+              type: "string",
+              description: "Sort order for the results",
+              enum: [
+                "name", "-name",
+                "platform", "-platform", 
+                "identifier", "-identifier",
+                "seedId", "-seedId",
+                "id", "-id"
+              ]
+            },
+            filter: {
+              type: "object",
+              properties: {
+                identifier: {
+                  type: "string",
+                  description: "Filter by bundle identifier"
+                },
+                name: {
+                  type: "string",
+                  description: "Filter by name"
+                },
+                platform: {
+                  type: "string",
+                  description: "Filter by platform",
+                  enum: ["IOS", "MAC_OS", "UNIVERSAL"]
+                },
+                seedId: {
+                  type: "string",
+                  description: "Filter by seed ID"
+                }
+              }
+            },
+            include: {
+              type: "array",
+              items: {
+                type: "string",
+                enum: ["profiles", "bundleIdCapabilities", "app"]
+              },
+              description: "Related resources to include in the response"
+            }
+          }
+        }
+      }, {
+        name: "get_bundle_id_info",
+        description: "Get detailed information about a specific bundle ID",
+        inputSchema: {
+          type: "object",
+          properties: {
+            bundleIdId: {
+              type: "string",
+              description: "The ID of the bundle ID to get information for"
+            },
+            include: {
+              type: "array",
+              items: {
+                type: "string",
+                enum: ["profiles", "bundleIdCapabilities", "app"],
+                description: "Related resources to include in the response"
+              },
+              description: "Optional relationships to include in the response"
+            },
+            fields: {
+              type: "object",
+              properties: {
+                bundleIds: {
+                  type: "array",
+                  items: {
+                    type: "string",
+                    enum: ["name", "platform", "identifier", "seedId"]
+                  },
+                  description: "Fields to include for the bundle ID"
+                }
+              },
+              description: "Specific fields to include in the response"
+            }
+          },
+          required: ["bundleIdId"]
+        }
+      }, {
+        name: "list_devices",
+        description: "Get a list of all devices registered to your team",
+        inputSchema: {
+          type: "object",
+          properties: {
+            limit: {
+              type: "number",
+              description: "Maximum number of devices to return (default: 100, max: 200)",
+              minimum: 1,
+              maximum: 200
+            },
+            sort: {
+              type: "string",
+              description: "Sort order for the results",
+              enum: [
+                "name", "-name",
+                "platform", "-platform",
+                "status", "-status",
+                "udid", "-udid",
+                "deviceClass", "-deviceClass",
+                "model", "-model",
+                "addedDate", "-addedDate"
+              ]
+            },
+            filter: {
+              type: "object",
+              properties: {
+                name: {
+                  type: "string",
+                  description: "Filter by device name"
+                },
+                platform: {
+                  type: "string",
+                  description: "Filter by platform",
+                  enum: ["IOS", "MAC_OS"]
+                },
+                status: {
+                  type: "string",
+                  description: "Filter by status",
+                  enum: ["ENABLED", "DISABLED"]
+                },
+                udid: {
+                  type: "string",
+                  description: "Filter by device UDID"
+                },
+                deviceClass: {
+                  type: "string",
+                  description: "Filter by device class",
+                  enum: ["APPLE_WATCH", "IPAD", "IPHONE", "IPOD", "APPLE_TV", "MAC"]
+                }
+              }
+            },
+            fields: {
+              type: "object",
+              properties: {
+                devices: {
+                  type: "array",
+                  items: {
+                    type: "string",
+                    enum: ["name", "platform", "udid", "deviceClass", "status", "model", "addedDate"]
+                  },
+                  description: "Fields to include for each device"
+                }
+              }
+            }
+          }
+        }
+      }, {
+        name: "enable_bundle_capability",
+        description: "Enable a capability for a bundle ID",
+        inputSchema: {
+          type: "object",
+          properties: {
+            bundleIdId: {
+              type: "string",
+              description: "The ID of the bundle ID"
+            },
+            capabilityType: {
+              type: "string",
+              description: "The type of capability to enable",
+              enum: [
+                "ICLOUD",
+                "IN_APP_PURCHASE",
+                "GAME_CENTER",
+                "PUSH_NOTIFICATIONS",
+                "WALLET",
+                "INTER_APP_AUDIO",
+                "MAPS",
+                "ASSOCIATED_DOMAINS",
+                "PERSONAL_VPN",
+                "APP_GROUPS",
+                "HEALTHKIT",
+                "HOMEKIT",
+                "WIRELESS_ACCESSORY_CONFIGURATION",
+                "APPLE_PAY",
+                "DATA_PROTECTION",
+                "SIRIKIT",
+                "NETWORK_EXTENSIONS",
+                "MULTIPATH",
+                "HOT_SPOT",
+                "NFC_TAG_READING",
+                "CLASSKIT",
+                "AUTOFILL_CREDENTIAL_PROVIDER",
+                "ACCESS_WIFI_INFORMATION",
+                "NETWORK_CUSTOM_PROTOCOL",
+                "COREMEDIA_HLS_LOW_LATENCY",
+                "SYSTEM_EXTENSION_INSTALL",
+                "USER_MANAGEMENT",
+                "APPLE_ID_AUTH"
+              ]
+            },
+            settings: {
+              type: "array",
+              description: "Optional capability settings",
+              items: {
+                type: "object",
+                properties: {
+                  key: {
+                    type: "string",
+                    description: "The setting key"
+                  },
+                  options: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        key: { type: "string" },
+                        enabled: { type: "boolean" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          required: ["bundleIdId", "capabilityType"]
+        }
+      }, {
+        name: "disable_bundle_capability",
+        description: "Disable a capability for a bundle ID",
+        inputSchema: {
+          type: "object",
+          properties: {
+            capabilityId: {
+              type: "string",
+              description: "The ID of the capability to disable"
+            }
+          },
+          required: ["capabilityId"]
+        }
+      }, {
+        name: "list_users",
+        description: "Get a list of all users registered on your App Store Connect team",
+        inputSchema: {
+          type: "object",
+          properties: {
+            limit: {
+              type: "number",
+              description: "Maximum number of users to return (default: 100, max: 200)",
+              minimum: 1,
+              maximum: 200
+            },
+            sort: {
+              type: "string",
+              description: "Sort order for the results",
+              enum: [
+                "username", "-username",
+                "firstName", "-firstName",
+                "lastName", "-lastName",
+                "roles", "-roles"
+              ]
+            },
+            filter: {
+              type: "object",
+              properties: {
+                username: {
+                  type: "string",
+                  description: "Filter by username"
+                },
+                roles: {
+                  type: "array",
+                  items: {
+                    type: "string",
+                    enum: [
+                      "ADMIN",
+                      "FINANCE",
+                      "TECHNICAL",
+                      "SALES",
+                      "MARKETING",
+                      "DEVELOPER",
+                      "ACCOUNT_HOLDER",
+                      "READ_ONLY",
+                      "APP_MANAGER",
+                      "ACCESS_TO_REPORTS",
+                      "CUSTOMER_SUPPORT"
+                    ]
+                  },
+                  description: "Filter by user roles"
+                },
+                visibleApps: {
+                  type: "array",
+                  items: {
+                    type: "string"
+                  },
+                  description: "Filter by apps the user can see (app IDs)"
+                }
+              }
+            },
+            include: {
+              type: "array",
+              items: {
+                type: "string",
+                enum: ["visibleApps"],
+                description: "Related resources to include in the response"
+              }
+            }
+          }
+        }
+      }]
+    }));
 
     // Handle tool calls
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
@@ -324,120 +669,336 @@ class AppStoreConnectServer {
             };
           }
 
-          // case "upload_screenshots": {
-          //   const { appId, screenshotPaths, locale = "en-US" } = request.params.arguments as {
-          //     appId: string;
-          //     screenshotPaths: string[];
-          //     locale?: string;
-          //   };
+          case "get_app_info": {
+            const { appId, include } = request.params.arguments as {
+              appId: string;
+              include?: string[];
+            };
+            
+            if (!appId) {
+              throw new McpError(
+                ErrorCode.InvalidParams,
+                "appId is required"
+              );
+            }
 
-          //   if (!appId || !screenshotPaths?.length) {
-          //     throw new McpError(
-          //       ErrorCode.InvalidParams,
-          //       "appId and screenshotPaths are required"
-          //     );
-          //   }
+            const response = await this.axiosInstance.get(`/apps/${appId}`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              },
+              params: {
+                include: include?.join(',')
+              }
+            });
 
-          //   // Get available screenshot sets
-          //   const setsResponse = await this.axiosInstance.get<ListScreenshotSetsResponse>(
-          //     `/apps/${appId}/appStoreVersionLocalizations/${locale}/appScreenshotSets`,
-          //     {
-          //       headers: { 'Authorization': `Bearer ${token}` }
-          //     }
-          //   );
+            return {
+              toolResult: response.data
+            };
+          }
 
-          //   const results = [];
+          case "create_bundle_id": {
+            const { identifier, name, platform, seedId } = request.params.arguments as {
+              identifier: string;
+              name: string;
+              platform: string;
+              seedId?: string;
+            };
+            
+            if (!identifier || !name || !platform) {
+              throw new McpError(
+                ErrorCode.InvalidParams,
+                "identifier, name, and platform are required"
+              );
+            }
 
-          //   for (const screenshotPath of screenshotPaths) {
-          //     try {
-          //       // Get image dimensions
-          //       const metadata = await sharp(screenshotPath).metadata();
-          //       if (!metadata.width || !metadata.height) {
-          //         throw new Error(`Could not get dimensions for ${screenshotPath}`);
-          //       }
+            const requestBody = {
+              data: {
+                type: "bundleIds",
+                attributes: {
+                  identifier,
+                  name,
+                  platform,
+                  seedId
+                }
+              }
+            };
 
-          //       // Find matching screenshot set
-          //       const matchingSet = setsResponse.data.data.find((set: ScreenshotSet) => {
-          //         const dimensions = SCREENSHOT_DIMENSIONS[set.attributes.screenshotDisplayType as ScreenshotDisplayType];
-          //         return dimensions && 
-          //           (dimensions.width === metadata.width && dimensions.height === metadata.height ||
-          //            dimensions.width === metadata.height && dimensions.height === metadata.width);
-          //       });
+            const response = await this.axiosInstance.post('/bundleIds', requestBody, {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            });
 
-          //       if (!matchingSet) {
-          //         results.push({
-          //           path: screenshotPath,
-          //           status: 'error',
-          //           message: `No matching screenshot set found for dimensions ${metadata.width}x${metadata.height}`
-          //         });
-          //         continue;
-          //       }
+            return {
+              toolResult: response.data
+            };
+          }
 
-          //       // Upload screenshot
-          //       const fileName = path.basename(screenshotPath);
-          //       const fileBuffer = await fs.readFile(screenshotPath);
-                
-          //       const uploadResponse = await this.axiosInstance.post(
-          //         `/apps/${appId}/appScreenshots`,
-          //         {
-          //           data: {
-          //             type: "appScreenshots",
-          //             attributes: {
-          //               fileName,
-          //               fileSize: fileBuffer.length
-          //             },
-          //             relationships: {
-          //               appScreenshotSet: {
-          //                 data: {
-          //                   id: matchingSet.id,
-          //                   type: "appScreenshotSets"
-          //                 }
-          //               }
-          //             }
-          //           }
-          //         },
-          //         {
-          //           headers: {
-          //             'Authorization': `Bearer ${token}`,
-          //             'Content-Type': 'application/json'
-          //           }
-          //         }
-          //       );
+          case "list_bundle_ids": {
+            interface ListBundleIdsArgs {
+              limit?: number;
+              sort?: string;
+              filter?: {
+                identifier?: string;
+                name?: string;
+                platform?: string;
+                seedId?: string;
+              };
+              include?: string[];
+            }
 
-          //       // Upload the actual file
-          //       const { uploadOperations } = uploadResponse.data.data.attributes;
-          //       await this.axiosInstance.put(
-          //         uploadOperations[0].url,
-          //         fileBuffer,
-          //         {
-          //           headers: {
-          //             ...uploadOperations[0].requestHeaders,
-          //             'Content-Length': fileBuffer.length
-          //           }
-          //         }
-          //       );
+            const { limit = 100, sort, filter, include } = request.params.arguments as ListBundleIdsArgs || {};
+            
+            const params: Record<string, any> = {
+              limit: Math.min(Number(limit), 200)
+            };
 
-          //       results.push({
-          //         path: screenshotPath,
-          //         status: 'success',
-          //         setType: matchingSet.attributes.screenshotDisplayType
-          //       });
+            // Add sort parameter if provided
+            if (sort) {
+              params.sort = sort;
+            }
 
-          //     } catch (error: any) {
-          //       results.push({
-          //         path: screenshotPath,
-          //         status: 'error',
-          //         message: error.message || 'Unknown error'
-          //       });
-          //     }
-          //   }
+            // Add filters if provided
+            if (filter) {
+              if (filter.identifier) params['filter[identifier]'] = filter.identifier;
+              if (filter.name) params['filter[name]'] = filter.name;
+              if (filter.platform) params['filter[platform]'] = filter.platform;
+              if (filter.seedId) params['filter[seedId]'] = filter.seedId;
+            }
 
-          //   return {
-          //     toolResult: {
-          //       uploads: results
-          //     }
-          //   };
-          // }
+            // Add includes if provided
+            if (Array.isArray(include) && include.length > 0) {
+              params.include = include.join(',');
+            }
+
+            const response = await this.axiosInstance.get('/bundleIds', {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              },
+              params
+            });
+
+            return {
+              toolResult: response.data
+            };
+          }
+
+          case "get_bundle_id_info": {
+            const { bundleIdId, include, fields } = request.params.arguments as {
+              bundleIdId: string;
+              include?: string[];
+              fields?: {
+                bundleIds?: string[];
+              };
+            };
+            
+            if (!bundleIdId) {
+              throw new McpError(
+                ErrorCode.InvalidParams,
+                "bundleIdId is required"
+              );
+            }
+
+            const params: Record<string, any> = {};
+
+            // Add fields if provided
+            if (fields?.bundleIds?.length) {
+              params['fields[bundleIds]'] = fields.bundleIds.join(',');
+            }
+
+            // Add includes if provided
+            if (include?.length) {
+              params.include = include.join(',');
+            }
+
+            const response = await this.axiosInstance.get(`/bundleIds/${bundleIdId}`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              },
+              params
+            });
+
+            return {
+              toolResult: response.data
+            };
+          }
+
+          case "list_devices": {
+            interface ListDevicesArgs {
+              limit?: number;
+              sort?: string;
+              filter?: {
+                name?: string;
+                platform?: string;
+                status?: string;
+                udid?: string;
+                deviceClass?: string;
+              };
+              fields?: {
+                devices?: string[];
+              };
+            }
+
+            const { limit = 100, sort, filter, fields } = request.params.arguments as ListDevicesArgs || {};
+            
+            const params: Record<string, any> = {
+              limit: Math.min(Number(limit), 200)
+            };
+
+            // Add sort parameter if provided
+            if (sort) {
+              params.sort = sort;
+            }
+
+            // Add filters if provided
+            if (filter) {
+              if (filter.name) params['filter[name]'] = filter.name;
+              if (filter.platform) params['filter[platform]'] = filter.platform;
+              if (filter.status) params['filter[status]'] = filter.status;
+              if (filter.udid) params['filter[udid]'] = filter.udid;
+              if (filter.deviceClass) params['filter[deviceClass]'] = filter.deviceClass;
+            }
+
+            // Add fields if provided
+            if (fields?.devices?.length) {
+              params['fields[devices]'] = fields.devices.join(',');
+            }
+
+            const response = await this.axiosInstance.get('/devices', {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              },
+              params
+            });
+
+            return {
+              toolResult: response.data
+            };
+          }
+
+          case "enable_bundle_capability": {
+            const { bundleIdId, capabilityType, settings } = request.params.arguments as {
+              bundleIdId: string;
+              capabilityType: string;
+              settings?: Array<{
+                key: string;
+                options: Array<{
+                  key: string;
+                  enabled: boolean;
+                }>;
+              }>;
+            };
+            
+            if (!bundleIdId || !capabilityType) {
+              throw new McpError(
+                ErrorCode.InvalidParams,
+                "bundleIdId and capabilityType are required"
+              );
+            }
+
+            const requestBody = {
+              data: {
+                type: "bundleIdCapabilities",
+                attributes: {
+                  capabilityType,
+                  settings
+                },
+                relationships: {
+                  bundleId: {
+                    data: {
+                      id: bundleIdId,
+                      type: "bundleIds"
+                    }
+                  }
+                }
+              }
+            };
+
+            const response = await this.axiosInstance.post('/bundleIdCapabilities', requestBody, {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            });
+
+            return {
+              toolResult: response.data
+            };
+          }
+
+          case "disable_bundle_capability": {
+            const { capabilityId } = request.params.arguments as {
+              capabilityId: string;
+            };
+            
+            if (!capabilityId) {
+              throw new McpError(
+                ErrorCode.InvalidParams,
+                "capabilityId is required"
+              );
+            }
+
+            await this.axiosInstance.delete(`/bundleIdCapabilities/${capabilityId}`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+
+            return {
+              toolResult: { 
+                success: true, 
+                message: "Capability disabled successfully" 
+              }
+            };
+          }
+
+          case "list_users": {
+            interface ListUsersArgs {
+              limit?: number;
+              sort?: string;
+              filter?: {
+                username?: string;
+                roles?: string[];
+                visibleApps?: string[];
+              };
+              include?: string[];
+            }
+
+            const { limit = 100, sort, filter, include } = request.params.arguments as ListUsersArgs || {};
+            
+            const params: Record<string, any> = {
+              limit: Math.min(Number(limit), 200)
+            };
+
+            // Add sort parameter if provided
+            if (sort) {
+              params.sort = sort;
+            }
+
+            // Add filters if provided
+            if (filter) {
+              if (filter.username) params['filter[username]'] = filter.username;
+              if (filter.roles?.length) params['filter[roles]'] = filter.roles.join(',');
+              if (filter.visibleApps?.length) params['filter[visibleApps]'] = filter.visibleApps.join(',');
+            }
+
+            // Add includes if provided
+            if (Array.isArray(include) && include.length > 0) {
+              params.include = include.join(',');
+            }
+
+            const response = await this.axiosInstance.get('/users', {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              },
+              params
+            });
+
+            return {
+              toolResult: response.data
+            };
+          }
 
           default:
             throw new McpError(
