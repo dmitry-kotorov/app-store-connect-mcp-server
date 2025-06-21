@@ -4,7 +4,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { ListToolsRequestSchema, CallToolRequestSchema, ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import axios from 'axios';
 import { AppStoreConnectClient } from './services/index.js';
-import { AppHandlers, BetaHandlers, BundleHandlers, DeviceHandlers, UserHandlers, AnalyticsHandlers } from './handlers/index.js';
+import { AppHandlers, BetaHandlers, BundleHandlers, DeviceHandlers, UserHandlers, AnalyticsHandlers, XcodeHandlers } from './handlers/index.js';
 // Load environment variables
 const config = {
     keyId: process.env.APP_STORE_CONNECT_KEY_ID,
@@ -21,6 +21,7 @@ class AppStoreConnectServer {
     deviceHandlers;
     userHandlers;
     analyticsHandlers;
+    xcodeHandlers;
     constructor() {
         this.server = new Server({
             name: "appstore-connect-server",
@@ -37,6 +38,7 @@ class AppStoreConnectServer {
         this.deviceHandlers = new DeviceHandlers(this.client);
         this.userHandlers = new UserHandlers(this.client);
         this.analyticsHandlers = new AnalyticsHandlers(this.client, config);
+        this.xcodeHandlers = new XcodeHandlers();
         this.setupHandlers();
     }
     buildToolsList() {
@@ -528,6 +530,21 @@ class AppStoreConnectServer {
                     },
                     required: ["segmentUrl"]
                 }
+            },
+            // Xcode Development Tools
+            {
+                name: "list_schemes",
+                description: "List all available schemes in an Xcode project or workspace",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        projectPath: {
+                            type: "string",
+                            description: "Path to the Xcode project (.xcodeproj) or workspace (.xcworkspace)"
+                        }
+                    },
+                    required: ["projectPath"]
+                }
             }
         ];
         // Sales and Finance Report tools - only available if vendor number is configured
@@ -659,6 +676,9 @@ class AppStoreConnectServer {
                             throw new McpError(ErrorCode.MethodNotFound, "Finance reports are not available. Please set APP_STORE_CONNECT_VENDOR_NUMBER environment variable.");
                         }
                         return { toolResult: await this.analyticsHandlers.downloadFinanceReport(args) };
+                    // Xcode Development Tools
+                    case "list_schemes":
+                        return { toolResult: await this.xcodeHandlers.listSchemes(args) };
                     default:
                         throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${request.params.name}`);
                 }

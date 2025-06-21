@@ -18,7 +18,8 @@ import {
   BundleHandlers, 
   DeviceHandlers, 
   UserHandlers, 
-  AnalyticsHandlers 
+  AnalyticsHandlers,
+  XcodeHandlers 
 } from './handlers/index.js';
 
 // Load environment variables
@@ -38,6 +39,7 @@ class AppStoreConnectServer {
   private deviceHandlers: DeviceHandlers;
   private userHandlers: UserHandlers;
   private analyticsHandlers: AnalyticsHandlers;
+  private xcodeHandlers: XcodeHandlers;
 
   constructor() {
     this.server = new Server({
@@ -56,6 +58,7 @@ class AppStoreConnectServer {
     this.deviceHandlers = new DeviceHandlers(this.client);
     this.userHandlers = new UserHandlers(this.client);
     this.analyticsHandlers = new AnalyticsHandlers(this.client, config);
+    this.xcodeHandlers = new XcodeHandlers();
 
     this.setupHandlers();
   }
@@ -554,6 +557,22 @@ class AppStoreConnectServer {
             },
             required: ["segmentUrl"]
           }
+        },
+
+        // Xcode Development Tools
+        {
+          name: "list_schemes",
+          description: "List all available schemes in an Xcode project or workspace",
+          inputSchema: {
+            type: "object",
+            properties: {
+              projectPath: {
+                type: "string",
+                description: "Path to the Xcode project (.xcodeproj) or workspace (.xcworkspace)"
+              }
+            },
+            required: ["projectPath"]
+          }
         }
     ];
 
@@ -715,6 +734,10 @@ class AppStoreConnectServer {
               );
             }
             return { toolResult: await this.analyticsHandlers.downloadFinanceReport(args as any) };
+
+          // Xcode Development Tools
+          case "list_schemes":
+            return { toolResult: await this.xcodeHandlers.listSchemes(args as any) };
 
           default:
             throw new McpError(

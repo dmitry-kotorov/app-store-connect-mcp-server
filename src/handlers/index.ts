@@ -4,3 +4,4 @@ export { BundleHandlers } from './bundles.js';
 export { DeviceHandlers } from './devices.js';
 export { UserHandlers } from './users.js';
 export { AnalyticsHandlers } from './analytics.js';
+export { XcodeHandlers } from './xcode.js';
