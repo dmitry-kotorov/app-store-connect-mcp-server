@@ -37,6 +37,13 @@ A Model Context Protocol (MCP) server for interacting with the App Store Connect
   - View user roles and permissions
   - Filter users by role and access
 
+- **Analytics & Reports** ✨ **NEW**
+  - Create analytics report requests for apps
+  - Download App Store engagement, commerce, and usage analytics
+  - Access performance and frameworks usage reports
+  - Download sales and trends reports (daily, weekly, monthly, yearly)
+  - Download finance reports by region
+
 ## Installation
 
 ### Using Smithery
@@ -79,7 +86,8 @@ Add the following to your Claude Desktop configuration file:
       "env": {
         "APP_STORE_CONNECT_KEY_ID": "YOUR_KEY_ID",
         "APP_STORE_CONNECT_ISSUER_ID": "YOUR_ISSUER_ID",
-        "APP_STORE_CONNECT_P8_PATH": "/path/to/your/auth-key.p8"
+        "APP_STORE_CONNECT_P8_PATH": "/path/to/your/auth-key.p8",
+        "APP_STORE_CONNECT_VENDOR_NUMBER": "YOUR_VENDOR_NUMBER_OPTIONAL"
       }
     }
   }
@@ -88,10 +96,24 @@ Add the following to your Claude Desktop configuration file:
 
 ## Authentication
 
+### Required Configuration
 1. Generate an App Store Connect API Key from [App Store Connect](https://appstoreconnect.apple.com/access/api)
 2. Download the .p8 private key file
 3. Note your Key ID and Issuer ID
-4. Set the environment variables in your configuration
+4. Set the required environment variables in your configuration:
+   - `APP_STORE_CONNECT_KEY_ID`: Your API Key ID
+   - `APP_STORE_CONNECT_ISSUER_ID`: Your Issuer ID  
+   - `APP_STORE_CONNECT_P8_PATH`: Path to your .p8 private key file
+
+### Optional Configuration for Sales & Finance Reports
+To enable sales and finance reporting tools, you'll also need:
+- `APP_STORE_CONNECT_VENDOR_NUMBER`: Your vendor number from App Store Connect
+
+**Note**: Sales and finance report tools (`download_sales_report`, `download_finance_report`) will only be available if the vendor number is configured. You can find your vendor number in App Store Connect under "Sales and Trends" or "Payments and Financial Reports".
+
+**Example behavior:**
+- ✅ **With vendor number**: All analytics + sales/finance tools available
+- ⚠️ **Without vendor number**: Only analytics tools available (sales/finance tools hidden)
 
 ## Available Tools
 
@@ -117,6 +139,17 @@ Add the following to your Claude Desktop configuration file:
 
 ### User Management
 - `list_users`: List all team members with role filtering
+
+### Analytics & Reports ✨ **NEW**
+- `create_analytics_report_request`: Create a new analytics report request for an app
+- `list_analytics_reports`: Get available analytics reports for a request
+- `list_analytics_report_segments`: Get segments for a specific analytics report
+- `download_analytics_report_segment`: Download data from an analytics report segment
+
+### Sales & Finance Reports 💰 **CONDITIONAL**
+*These tools are only available if `APP_STORE_CONNECT_VENDOR_NUMBER` is configured*
+- `download_sales_report`: Download sales and trends reports with various frequencies
+- `download_finance_report`: Download finance reports for specific regions
 
 ## Error Handling
 

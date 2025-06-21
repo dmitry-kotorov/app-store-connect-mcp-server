@@ -1,6 +1,6 @@
 {
   "name": "appstore-connect-mcp-server",
-  "version": "1.0.1",
+  "version": "1.0.4",
   "type": "module",
   "scripts": {
     "build": "tsc && shx chmod +x dist/src/*.js",
