@@ -2,6 +2,12 @@
 
 A Model Context Protocol (MCP) server for interacting with the App Store Connect API. This server provides tools for managing apps, beta testers, bundle IDs, devices, and capabilities in App Store Connect.
 
+<a href="https://glama.ai/mcp/servers/z4j2smln34"><img width="380" height="200" src="https://glama.ai/mcp/servers/z4j2smln34/badge" alt="app-store-connect-mcp-server MCP server" /></a>
+<a href="https://smithery.ai/server/appstore-connect-mcp-server" style="text-decoration: none;">
+  <img alt="Smithery Installations" src="https://smithery.ai/badge/appstore-connect-mcp-server" />
+</a>
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/joshuarileydev-app-store-connect-mcp-server-badge.png)](https://mseep.ai/app/joshuarileydev-app-store-connect-mcp-server)
+
 ## Features
 
 - **App Management**
@@ -33,8 +39,18 @@ A Model Context Protocol (MCP) server for interacting with the App Store Connect
 
 ## Installation
 
+### Using Smithery
+
+To install App Store Connect Server for Claude Desktop automatically:
+
 ```bash
-npm install @your-org/app-store-connect-mcp-server
+npx @smithery/cli install appstore-connect-mcp-server --client claude
+```
+
+### Manual Installation
+
+```bash
+npm install @joshuarileydev/app-store-connect-mcp-server
 ```
 
 ## Configuration
@@ -58,7 +74,7 @@ Add the following to your Claude Desktop configuration file:
       "command": "npx",
       "args": [
         "-y",
-        "@your-org/app-store-connect-mcp-server"
+        "@joshuarileydev/app-store-connect-mcp-server"
       ],
       "env": {
         "APP_STORE_CONNECT_KEY_ID": "YOUR_KEY_ID",
