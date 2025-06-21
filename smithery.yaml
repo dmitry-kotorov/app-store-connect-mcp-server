@@ -1,0 +1,26 @@
+schema_version: v1
+name: appstore-connect-mcp-server
+description: A Model Context Protocol (MCP) server for interacting with the App Store Connect API
+repository: https://github.com/JoshuaRileyDev/app-store-connect
+homepage: https://github.com/JoshuaRileyDev/app-store-connect
+license: MIT
+runtime: docker
+vendor:
+  name: Joshua Riley
+  github: JoshuaRileyDev
+mcp:
+  version: 1.0.3
+  protocol_version: "0.1"
+  compatible_clients:
+    - name: claude
+      version: ">= 0.5.8"
+config:
+  - name: APP_STORE_CONNECT_KEY_ID
+    description: Your App Store Connect API Key ID
+    required: true
+  - name: APP_STORE_CONNECT_ISSUER_ID
+    description: Your App Store Connect Issuer ID
+    required: true
+  - name: APP_STORE_CONNECT_P8_PATH
+    description: Path to your App Store Connect P8 private key file
+    required: true
