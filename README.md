@@ -122,7 +122,7 @@ Add the following to your Claude Desktop configuration file:
 ## Authentication
 
 ### Required Configuration
-1. Generate an App Store Connect API Key from [App Store Connect](https://appstoreconnect.apple.com/access/api)
+1. Generate an App Store Connect API Key from [App Store Connect](https://appstoreconnect.apple.com/access/integrations/api)
 2. Download the .p8 private key file
 3. Note your Key ID and Issuer ID
 4. Set the required environment variables in your configuration:
