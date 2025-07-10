@@ -18,6 +18,7 @@ export class BetaHandlers {
             limit: sanitizeLimit(limit)
         });
     }
+
     async addTesterToGroup(args) {
         const { groupId, email, firstName, lastName } = args;
         validateRequired(args, ['groupId', 'email', 'firstName', 'lastName']);

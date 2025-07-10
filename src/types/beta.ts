@@ -56,3 +56,85 @@ export interface RemoveTesterRequest {
     type: "betaTesters";
   }>;
 }
+
+// Beta Feedback Screenshot types
+export interface BetaFeedbackScreenshotImage {
+  url: string;
+  height: number;
+  width: number;
+}
+
+export interface BetaFeedbackScreenshotSubmission {
+  id: string;
+  type: "betaFeedbackScreenshotSubmissions";
+  attributes: {
+    createdDate?: string;
+    comment?: string;
+    email?: string;
+    deviceModel?: string;
+    osVersion?: string;
+    locale?: string;
+    timeZone?: string;
+    architecture?: string;
+    connectionType?: string;
+    pairedAppleWatch?: string;
+    appUptimeInMilliseconds?: number;
+    diskBytesAvailable?: number;
+    diskBytesTotal?: number;
+    batteryPercentage?: number;
+    screenWidthInPoints?: number;
+    screenHeightInPoints?: number;
+    appPlatform?: string;
+    devicePlatform?: "IOS" | "MAC_OS" | "TV_OS" | "VISION_OS";
+    deviceFamily?: string;
+    buildBundleId?: string;
+    screenshots?: BetaFeedbackScreenshotImage[];
+  };
+  relationships?: {
+    build?: {
+      data?: {
+        id: string;
+        type: "builds";
+      };
+    };
+    tester?: {
+      data?: {
+        id: string;
+        type: "betaTesters";
+      };
+    };
+  };
+}
+
+export interface ListBetaFeedbackScreenshotSubmissionsRequest {
+  appId: string;
+  buildId?: string;
+  devicePlatform?: "IOS" | "MAC_OS" | "TV_OS" | "VISION_OS";
+  appPlatform?: "IOS" | "MAC_OS" | "TV_OS" | "VISION_OS";
+  deviceModel?: string;
+  osVersion?: string;
+  testerId?: string;
+  limit?: number;
+  sort?: "createdDate" | "-createdDate";
+  includeBuilds?: boolean;
+  includeTesters?: boolean;
+}
+
+export interface ListBetaFeedbackScreenshotSubmissionsResponse {
+  data: BetaFeedbackScreenshotSubmission[];
+  included?: Array<{
+    id: string;
+    type: string;
+    attributes?: any;
+  }>;
+  links?: {
+    self: string;
+    next?: string;
+  };
+  meta?: {
+    paging?: {
+      total: number;
+      limit: number;
+    };
+  };
+}
