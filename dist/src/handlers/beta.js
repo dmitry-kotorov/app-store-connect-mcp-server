@@ -112,7 +112,7 @@ export class BetaHandlers {
         return this.client.get(`/apps/${finalAppId}/betaFeedbackScreenshotSubmissions`, params);
     }
     async getBetaFeedbackScreenshot(args) {
-        const { feedbackId, includeBuilds = false, includeTesters = false } = args;
+        const { feedbackId, includeBuilds = false, includeTesters = false, downloadScreenshot = true } = args;
         if (!feedbackId) {
             throw new Error('feedbackId is required');
         }
@@ -128,6 +128,47 @@ export class BetaHandlers {
         }
         // Add field selections
         params['fields[betaFeedbackScreenshotSubmissions]'] = 'createdDate,comment,email,deviceModel,osVersion,locale,timeZone,architecture,connectionType,pairedAppleWatch,appUptimeInMilliseconds,diskBytesAvailable,diskBytesTotal,batteryPercentage,screenWidthInPoints,screenHeightInPoints,appPlatform,devicePlatform,deviceFamily,buildBundleId,screenshots,build,tester';
-        return this.client.get(`/betaFeedbackScreenshotSubmissions/${feedbackId}`, params);
+        const response = await this.client.get(`/betaFeedbackScreenshotSubmissions/${feedbackId}`, params);
+        // If downloadScreenshot is true, download and include the screenshot as base64
+        const screenshots = response.data.attributes?.screenshots;
+        if (downloadScreenshot && screenshots && screenshots.length > 0) {
+            try {
+                const screenshot = screenshots[0];
+                console.error(`Downloading screenshot from: ${screenshot.url.substring(0, 100)}...`);
+                const axios = (await import('axios')).default;
+                const imageResponse = await axios.get(screenshot.url, {
+                    responseType: 'arraybuffer',
+                    timeout: 10000, // 10 second timeout
+                    maxContentLength: 5 * 1024 * 1024, // 5MB max
+                    headers: {
+                        'User-Agent': 'App-Store-Connect-MCP-Server/1.0'
+                    }
+                });
+                // Convert to base64
+                const base64Data = Buffer.from(imageResponse.data).toString('base64');
+                const mimeType = imageResponse.headers['content-type'] || 'image/jpeg';
+                // Return response with both data and image content
+                return {
+                    toolResult: response,
+                    content: [
+                        {
+                            type: "text",
+                            text: `Beta feedback screenshot (${screenshot.width}x${screenshot.height}) - ${response.data.attributes.comment || 'No comment'}`
+                        },
+                        {
+                            type: "image",
+                            data: base64Data,
+                            mimeType: mimeType
+                        }
+                    ]
+                };
+            }
+            catch (error) {
+                // If download fails, just return the normal response
+                console.error('Failed to download screenshot:', error.message);
+                return response;
+            }
+        }
+        return response;
     }
 }

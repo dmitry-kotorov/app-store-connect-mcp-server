@@ -233,7 +233,7 @@ class AppStoreConnectServer {
             },
             {
                 name: "get_beta_feedback_screenshot",
-                description: "Get detailed information about a specific beta feedback screenshot submission",
+                description: "Get detailed information about a specific beta feedback screenshot submission. By default, downloads and returns the screenshot image.",
                 inputSchema: {
                     type: "object",
                     properties: {
@@ -250,6 +250,11 @@ class AppStoreConnectServer {
                             type: "boolean",
                             description: "Include tester information in response (optional)",
                             default: false
+                        },
+                        downloadScreenshot: {
+                            type: "boolean",
+                            description: "Download and return the screenshot as an image (default: true)",
+                            default: true
                         }
                     },
                     required: ["feedbackId"]
@@ -732,7 +737,13 @@ class AppStoreConnectServer {
                     case "list_beta_feedback_screenshots":
                         return { toolResult: await this.betaHandlers.listBetaFeedbackScreenshots(args) };
                     case "get_beta_feedback_screenshot":
-                        return { toolResult: await this.betaHandlers.getBetaFeedbackScreenshot(args) };
+                        const result = await this.betaHandlers.getBetaFeedbackScreenshot(args);
+                        // If the result contains content (image), return it directly
+                        if (result.content) {
+                            return result;
+                        }
+                        // Otherwise wrap in toolResult
+                        return { toolResult: result };
                     // Bundle IDs
                     case "create_bundle_id":
                         return { toolResult: await this.bundleHandlers.createBundleId(args) };
