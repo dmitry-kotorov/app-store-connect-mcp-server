@@ -753,13 +753,25 @@ class AppStoreConnectServer {
       try {
         const args = request.params.arguments || {};
         
+        // Helper to format responses
+        const formatResponse = (data: any) => {
+          return {
+            content: [{
+              type: "text",
+              text: JSON.stringify(data, null, 2)
+            }]
+          };
+        };
+        
         switch (request.params.name) {
           // App Management
           case "list_apps":
-            return { toolResult: await this.appHandlers.listApps(args as any) };
+            const appsData = await this.appHandlers.listApps(args as any);
+            return formatResponse(appsData);
           
           case "get_app_info":
-            return { toolResult: await this.appHandlers.getAppInfo(args as any) };
+            const appInfo = await this.appHandlers.getAppInfo(args as any);
+            return formatResponse(appInfo);
 
           // Beta Testing
           case "list_beta_groups":
@@ -775,16 +787,17 @@ class AppStoreConnectServer {
             return { toolResult: await this.betaHandlers.removeTesterFromGroup(args as any) };
           
           case "list_beta_feedback_screenshots":
-            return { toolResult: await this.betaHandlers.listBetaFeedbackScreenshots(args as any) };
+            const feedbackData = await this.betaHandlers.listBetaFeedbackScreenshots(args as any);
+            return formatResponse(feedbackData);
           
           case "get_beta_feedback_screenshot":
             const result = await this.betaHandlers.getBetaFeedbackScreenshot(args as any);
-            // If the result contains content (image), return it directly
+            // If the result already contains content (image), return it directly
             if (result.content) {
               return result;
             }
-            // Otherwise wrap in toolResult
-            return { toolResult: result };
+            // Otherwise format as text
+            return formatResponse(result);
 
           // Bundle IDs
           case "create_bundle_id":

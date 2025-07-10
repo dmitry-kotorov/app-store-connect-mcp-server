@@ -719,12 +719,21 @@ class AppStoreConnectServer {
         this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
             try {
                 const args = request.params.arguments || {};
+                // Helper to format responses
+                const formatResponse = (data) => ({
+                    content: [{
+                            type: "text",
+                            text: JSON.stringify(data, null, 2)
+                        }]
+                });
                 switch (request.params.name) {
                     // App Management
                     case "list_apps":
-                        return { toolResult: await this.appHandlers.listApps(args) };
+                        const appsData = await this.appHandlers.listApps(args);
+                        return formatResponse(appsData);
                     case "get_app_info":
-                        return { toolResult: await this.appHandlers.getAppInfo(args) };
+                        const appInfo = await this.appHandlers.getAppInfo(args);
+                        return formatResponse(appInfo);
                     // Beta Testing
                     case "list_beta_groups":
                         return { toolResult: await this.betaHandlers.listBetaGroups(args) };
@@ -735,15 +744,16 @@ class AppStoreConnectServer {
                     case "remove_tester_from_group":
                         return { toolResult: await this.betaHandlers.removeTesterFromGroup(args) };
                     case "list_beta_feedback_screenshots":
-                        return { toolResult: await this.betaHandlers.listBetaFeedbackScreenshots(args) };
+                        const feedbackData = await this.betaHandlers.listBetaFeedbackScreenshots(args);
+                        return formatResponse(feedbackData);
                     case "get_beta_feedback_screenshot":
                         const result = await this.betaHandlers.getBetaFeedbackScreenshot(args);
-                        // If the result contains content (image), return it directly
+                        // If the result already contains content (image), return it directly
                         if (result.content) {
                             return result;
                         }
-                        // Otherwise wrap in toolResult
-                        return { toolResult: result };
+                        // Otherwise format as text
+                        return formatResponse(result);
                     // Bundle IDs
                     case "create_bundle_id":
                         return { toolResult: await this.bundleHandlers.createBundleId(args) };
