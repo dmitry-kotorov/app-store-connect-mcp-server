@@ -256,7 +256,7 @@ class AppStoreConnectServer {
         },
         {
           name: "get_beta_feedback_screenshot",
-          description: "Get detailed information about a specific beta feedback screenshot submission",
+          description: "Get detailed information about a specific beta feedback screenshot submission. By default, downloads and returns the screenshot image.",
           inputSchema: {
             type: "object",
             properties: {
@@ -273,6 +273,11 @@ class AppStoreConnectServer {
                 type: "boolean",
                 description: "Include tester information in response (optional)",
                 default: false
+              },
+              downloadScreenshot: {
+                type: "boolean",
+                description: "Download and return the screenshot as an image (default: true)",
+                default: true
               }
             },
             required: ["feedbackId"]
@@ -748,13 +753,25 @@ class AppStoreConnectServer {
       try {
         const args = request.params.arguments || {};
         
+        // Helper to format responses
+        const formatResponse = (data: any) => {
+          return {
+            content: [{
+              type: "text",
+              text: JSON.stringify(data, null, 2)
+            }]
+          };
+        };
+        
         switch (request.params.name) {
           // App Management
           case "list_apps":
-            return { toolResult: await this.appHandlers.listApps(args as any) };
+            const appsData = await this.appHandlers.listApps(args as any);
+            return formatResponse(appsData);
           
           case "get_app_info":
-            return { toolResult: await this.appHandlers.getAppInfo(args as any) };
+            const appInfo = await this.appHandlers.getAppInfo(args as any);
+            return formatResponse(appInfo);
 
           // Beta Testing
           case "list_beta_groups":
@@ -770,10 +787,17 @@ class AppStoreConnectServer {
             return { toolResult: await this.betaHandlers.removeTesterFromGroup(args as any) };
           
           case "list_beta_feedback_screenshots":
-            return { toolResult: await this.betaHandlers.listBetaFeedbackScreenshots(args as any) };
+            const feedbackData = await this.betaHandlers.listBetaFeedbackScreenshots(args as any);
+            return formatResponse(feedbackData);
           
           case "get_beta_feedback_screenshot":
-            return { toolResult: await this.betaHandlers.getBetaFeedbackScreenshot(args as any) };
+            const result = await this.betaHandlers.getBetaFeedbackScreenshot(args as any);
+            // If the result already contains content (image), return it directly
+            if (result.content) {
+              return result;
+            }
+            // Otherwise format as text
+            return formatResponse(result);
 
           // Bundle IDs
           case "create_bundle_id":
