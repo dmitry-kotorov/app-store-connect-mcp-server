@@ -166,6 +166,67 @@ class AppStoreConnectServer {
                     required: ["groupId", "testerId"]
                 }
             },
+            {
+                name: "list_beta_feedback_screenshots",
+                description: "List all beta feedback screenshot submissions for an app. This includes feedback with screenshots, device information, and tester comments.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        appId: {
+                            type: "string",
+                            description: "The ID of the app to get feedback for"
+                        },
+                        buildId: {
+                            type: "string",
+                            description: "Filter by specific build ID (optional)"
+                        },
+                        devicePlatform: {
+                            type: "string",
+                            enum: ["IOS", "MAC_OS", "TV_OS", "VISION_OS"],
+                            description: "Filter by device platform (optional)"
+                        },
+                        appPlatform: {
+                            type: "string",
+                            enum: ["IOS", "MAC_OS", "TV_OS", "VISION_OS"],
+                            description: "Filter by app platform (optional)"
+                        },
+                        deviceModel: {
+                            type: "string",
+                            description: "Filter by device model (e.g., 'iPhone15_2') (optional)"
+                        },
+                        osVersion: {
+                            type: "string",
+                            description: "Filter by OS version (e.g., '18.4.1') (optional)"
+                        },
+                        testerId: {
+                            type: "string",
+                            description: "Filter by specific tester ID (optional)"
+                        },
+                        limit: {
+                            type: "number",
+                            description: "Maximum number of feedback items to return (default: 50, max: 200)",
+                            minimum: 1,
+                            maximum: 200
+                        },
+                        sort: {
+                            type: "string",
+                            enum: ["createdDate", "-createdDate"],
+                            description: "Sort order for results (default: -createdDate for newest first)"
+                        },
+                        includeBuilds: {
+                            type: "boolean",
+                            description: "Include build information in response (optional)",
+                            default: false
+                        },
+                        includeTesters: {
+                            type: "boolean",
+                            description: "Include tester information in response (optional)",
+                            default: false
+                        }
+                    },
+                    required: ["appId"]
+                }
+            },
             // Bundle ID Tools
             {
                 name: "create_bundle_id",
@@ -640,6 +701,8 @@ class AppStoreConnectServer {
                         return { toolResult: await this.betaHandlers.addTesterToGroup(args) };
                     case "remove_tester_from_group":
                         return { toolResult: await this.betaHandlers.removeTesterFromGroup(args) };
+                    case "list_beta_feedback_screenshots":
+                        return { toolResult: await this.betaHandlers.listBetaFeedbackScreenshots(args) };
                     // Bundle IDs
                     case "create_bundle_id":
                         return { toolResult: await this.bundleHandlers.createBundleId(args) };
