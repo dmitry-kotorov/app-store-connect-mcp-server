@@ -107,7 +107,8 @@ export interface BetaFeedbackScreenshotSubmission {
 }
 
 export interface ListBetaFeedbackScreenshotSubmissionsRequest {
-  appId: string;
+  appId?: string;
+  bundleId?: string;
   buildId?: string;
   devicePlatform?: "IOS" | "MAC_OS" | "TV_OS" | "VISION_OS";
   appPlatform?: "IOS" | "MAC_OS" | "TV_OS" | "VISION_OS";

@@ -168,13 +168,17 @@ class AppStoreConnectServer {
             },
             {
                 name: "list_beta_feedback_screenshots",
-                description: "List all beta feedback screenshot submissions for an app. This includes feedback with screenshots, device information, and tester comments.",
+                description: "List all beta feedback screenshot submissions for an app. This includes feedback with screenshots, device information, and tester comments. You can identify the app using either appId or bundleId.",
                 inputSchema: {
                     type: "object",
                     properties: {
                         appId: {
                             type: "string",
-                            description: "The ID of the app to get feedback for"
+                            description: "The ID of the app to get feedback for (e.g., '6747745091')"
+                        },
+                        bundleId: {
+                            type: "string",
+                            description: "The bundle ID of the app (e.g., 'com.example.app'). Can be used instead of appId."
                         },
                         buildId: {
                             type: "string",
@@ -224,7 +228,7 @@ class AppStoreConnectServer {
                             default: false
                         }
                     },
-                    required: ["appId"]
+                    required: []
                 }
             },
             // Bundle ID Tools

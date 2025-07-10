@@ -5,10 +5,14 @@ export class AppHandlers {
         this.client = client;
     }
     async listApps(args = {}) {
-        const { limit = 100 } = args;
-        return this.client.get('/apps', {
+        const { limit = 100, bundleId } = args;
+        const params = {
             limit: sanitizeLimit(limit)
-        });
+        };
+        if (bundleId) {
+            params['filter[bundleId]'] = bundleId;
+        }
+        return this.client.get('/apps', params);
     }
     async getAppInfo(args) {
         const { appId, include } = args;
@@ -18,5 +22,12 @@ export class AppHandlers {
             params.include = include.join(',');
         }
         return this.client.get(`/apps/${appId}`, params);
+    }
+    async findAppByBundleId(bundleId) {
+        const response = await this.listApps({ bundleId, limit: 1 });
+        if (response.data && response.data.length > 0) {
+            return response.data[0];
+        }
+        return null;
     }
 }

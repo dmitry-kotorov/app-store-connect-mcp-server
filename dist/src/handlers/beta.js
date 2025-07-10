@@ -1,8 +1,11 @@
 import { validateRequired, sanitizeLimit } from '../utils/index.js';
+import { AppHandlers } from './apps.js';
 export class BetaHandlers {
     client;
+    appHandlers;
     constructor(client) {
         this.client = client;
+        this.appHandlers = new AppHandlers(client);
     }
     async listBetaGroups(args = {}) {
         const { limit = 100 } = args;
@@ -57,8 +60,20 @@ export class BetaHandlers {
         };
     }
     async listBetaFeedbackScreenshots(args) {
-        const { appId, buildId, devicePlatform, appPlatform, deviceModel, osVersion, testerId, limit = 50, sort = "-createdDate", includeBuilds = false, includeTesters = false } = args;
-        validateRequired(args, ['appId']);
+        const { appId, bundleId, buildId, devicePlatform, appPlatform, deviceModel, osVersion, testerId, limit = 50, sort = "-createdDate", includeBuilds = false, includeTesters = false } = args;
+        // Require either appId or bundleId
+        if (!appId && !bundleId) {
+            throw new Error('Either appId or bundleId must be provided');
+        }
+        // If bundleId is provided but not appId, look up the app
+        let finalAppId = appId;
+        if (!appId && bundleId) {
+            const app = await this.appHandlers.findAppByBundleId(bundleId);
+            if (!app) {
+                throw new Error(`No app found with bundle ID: ${bundleId}`);
+            }
+            finalAppId = app.id;
+        }
         // Build query parameters
         const params = {
             limit: sanitizeLimit(limit),
@@ -94,6 +109,6 @@ export class BetaHandlers {
         }
         // Add field selections for better performance
         params['fields[betaFeedbackScreenshotSubmissions]'] = 'createdDate,comment,email,deviceModel,osVersion,locale,timeZone,architecture,connectionType,pairedAppleWatch,appUptimeInMilliseconds,diskBytesAvailable,diskBytesTotal,batteryPercentage,screenWidthInPoints,screenHeightInPoints,appPlatform,devicePlatform,deviceFamily,buildBundleId,screenshots,build,tester';
-        return this.client.get(`/apps/${appId}/betaFeedbackScreenshotSubmissions`, params);
+        return this.client.get(`/apps/${finalAppId}/betaFeedbackScreenshotSubmissions`, params);
     }
 }

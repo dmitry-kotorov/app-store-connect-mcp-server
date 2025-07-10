@@ -5,12 +5,21 @@ import { validateRequired, sanitizeLimit } from '../utils/index.js';
 export class AppHandlers {
   constructor(private client: AppStoreConnectClient) {}
 
-  async listApps(args: { limit?: number } = {}): Promise<ListAppsResponse> {
-    const { limit = 100 } = args;
+  async listApps(args: { 
+    limit?: number;
+    bundleId?: string;
+  } = {}): Promise<ListAppsResponse> {
+    const { limit = 100, bundleId } = args;
     
-    return this.client.get<ListAppsResponse>('/apps', {
+    const params: Record<string, any> = {
       limit: sanitizeLimit(limit)
-    });
+    };
+    
+    if (bundleId) {
+      params['filter[bundleId]'] = bundleId;
+    }
+    
+    return this.client.get<ListAppsResponse>('/apps', params);
   }
 
   async getAppInfo(args: { 
@@ -27,5 +36,15 @@ export class AppHandlers {
     }
 
     return this.client.get<AppInfoResponse>(`/apps/${appId}`, params);
+  }
+
+  async findAppByBundleId(bundleId: string): Promise<{ id: string; attributes: { bundleId: string; name: string; sku: string; primaryLocale: string } } | null> {
+    const response = await this.listApps({ bundleId, limit: 1 });
+    
+    if (response.data && response.data.length > 0) {
+      return response.data[0];
+    }
+    
+    return null;
   }
 }
