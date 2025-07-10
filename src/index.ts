@@ -254,6 +254,30 @@ class AppStoreConnectServer {
             required: []
           }
         },
+        {
+          name: "get_beta_feedback_screenshot",
+          description: "Get detailed information about a specific beta feedback screenshot submission",
+          inputSchema: {
+            type: "object",
+            properties: {
+              feedbackId: {
+                type: "string",
+                description: "The ID of the beta feedback screenshot submission"
+              },
+              includeBuilds: {
+                type: "boolean",
+                description: "Include build information in response (optional)",
+                default: false
+              },
+              includeTesters: {
+                type: "boolean",
+                description: "Include tester information in response (optional)",
+                default: false
+              }
+            },
+            required: ["feedbackId"]
+          }
+        },
 
         // Bundle ID Tools
         {
@@ -747,6 +771,9 @@ class AppStoreConnectServer {
           
           case "list_beta_feedback_screenshots":
             return { toolResult: await this.betaHandlers.listBetaFeedbackScreenshots(args as any) };
+          
+          case "get_beta_feedback_screenshot":
+            return { toolResult: await this.betaHandlers.getBetaFeedbackScreenshot(args as any) };
 
           // Bundle IDs
           case "create_bundle_id":

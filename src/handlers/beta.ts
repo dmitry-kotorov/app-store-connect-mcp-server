@@ -5,7 +5,8 @@ import {
   AddTesterRequest,
   RemoveTesterRequest,
   ListBetaFeedbackScreenshotSubmissionsRequest,
-  ListBetaFeedbackScreenshotSubmissionsResponse
+  ListBetaFeedbackScreenshotSubmissionsResponse,
+  BetaFeedbackScreenshotSubmissionResponse
 } from '../types/index.js';
 import { validateRequired, sanitizeLimit } from '../utils/index.js';
 import { AppHandlers } from './apps.js';
@@ -164,6 +165,36 @@ export class BetaHandlers {
 
     return this.client.get<ListBetaFeedbackScreenshotSubmissionsResponse>(
       `/apps/${finalAppId}/betaFeedbackScreenshotSubmissions`, 
+      params
+    );
+  }
+
+  async getBetaFeedbackScreenshot(args: { 
+    feedbackId: string;
+    includeBuilds?: boolean;
+    includeTesters?: boolean;
+  }): Promise<BetaFeedbackScreenshotSubmissionResponse> {
+    const { feedbackId, includeBuilds = false, includeTesters = false } = args;
+    
+    if (!feedbackId) {
+      throw new Error('feedbackId is required');
+    }
+
+    const params: Record<string, any> = {};
+
+    // Add includes if requested
+    const includes: string[] = [];
+    if (includeBuilds) includes.push('build');
+    if (includeTesters) includes.push('tester');
+    if (includes.length > 0) {
+      params.include = includes.join(',');
+    }
+
+    // Add field selections
+    params['fields[betaFeedbackScreenshotSubmissions]'] = 'createdDate,comment,email,deviceModel,osVersion,locale,timeZone,architecture,connectionType,pairedAppleWatch,appUptimeInMilliseconds,diskBytesAvailable,diskBytesTotal,batteryPercentage,screenWidthInPoints,screenHeightInPoints,appPlatform,devicePlatform,deviceFamily,buildBundleId,screenshots,build,tester';
+
+    return this.client.get<BetaFeedbackScreenshotSubmissionResponse>(
+      `/betaFeedbackScreenshotSubmissions/${feedbackId}`, 
       params
     );
   }

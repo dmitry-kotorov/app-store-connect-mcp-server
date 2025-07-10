@@ -139,3 +139,15 @@ export interface ListBetaFeedbackScreenshotSubmissionsResponse {
     };
   };
 }
+
+export interface BetaFeedbackScreenshotSubmissionResponse {
+  data: BetaFeedbackScreenshotSubmission;
+  included?: Array<{
+    id: string;
+    type: string;
+    attributes?: any;
+  }>;
+  links?: {
+    self: string;
+  };
+}

@@ -111,4 +111,23 @@ export class BetaHandlers {
         params['fields[betaFeedbackScreenshotSubmissions]'] = 'createdDate,comment,email,deviceModel,osVersion,locale,timeZone,architecture,connectionType,pairedAppleWatch,appUptimeInMilliseconds,diskBytesAvailable,diskBytesTotal,batteryPercentage,screenWidthInPoints,screenHeightInPoints,appPlatform,devicePlatform,deviceFamily,buildBundleId,screenshots,build,tester';
         return this.client.get(`/apps/${finalAppId}/betaFeedbackScreenshotSubmissions`, params);
     }
+    async getBetaFeedbackScreenshot(args) {
+        const { feedbackId, includeBuilds = false, includeTesters = false } = args;
+        if (!feedbackId) {
+            throw new Error('feedbackId is required');
+        }
+        const params = {};
+        // Add includes if requested
+        const includes = [];
+        if (includeBuilds)
+            includes.push('build');
+        if (includeTesters)
+            includes.push('tester');
+        if (includes.length > 0) {
+            params.include = includes.join(',');
+        }
+        // Add field selections
+        params['fields[betaFeedbackScreenshotSubmissions]'] = 'createdDate,comment,email,deviceModel,osVersion,locale,timeZone,architecture,connectionType,pairedAppleWatch,appUptimeInMilliseconds,diskBytesAvailable,diskBytesTotal,batteryPercentage,screenWidthInPoints,screenHeightInPoints,appPlatform,devicePlatform,deviceFamily,buildBundleId,screenshots,build,tester';
+        return this.client.get(`/betaFeedbackScreenshotSubmissions/${feedbackId}`, params);
+    }
 }
