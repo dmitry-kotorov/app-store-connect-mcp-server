@@ -41,6 +41,7 @@ This server transforms complex App Store Connect operations into simple conversa
   - List beta testers
   - Add/remove testers from groups
   - Manage beta test configurations
+  - View beta feedback with screenshots and device information
 
 - **Bundle ID Management**
   - List bundle IDs
@@ -151,6 +152,7 @@ To enable sales and finance reporting tools, you'll also need:
 - `list_group_testers`: List testers in a specific beta group
 - `add_tester_to_group`: Add a new tester to a beta group
 - `remove_tester_from_group`: Remove a tester from a beta group
+- `list_beta_feedback_screenshots`: List beta feedback with screenshots (supports both app ID and bundle ID)
 
 ### Bundle ID Management
 - `list_bundle_ids`: List all registered bundle IDs

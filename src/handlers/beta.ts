@@ -3,12 +3,20 @@ import {
   ListBetaGroupsResponse, 
   ListBetaTestersResponse, 
   AddTesterRequest,
-  RemoveTesterRequest
+  RemoveTesterRequest,
+  ListBetaFeedbackScreenshotSubmissionsRequest,
+  ListBetaFeedbackScreenshotSubmissionsResponse,
+  BetaFeedbackScreenshotSubmissionResponse
 } from '../types/index.js';
 import { validateRequired, sanitizeLimit } from '../utils/index.js';
+import { AppHandlers } from './apps.js';
 
 export class BetaHandlers {
-  constructor(private client: AppStoreConnectClient) {}
+  private appHandlers: AppHandlers;
+  
+  constructor(private client: AppStoreConnectClient) {
+    this.appHandlers = new AppHandlers(client);
+  }
 
   async listBetaGroups(args: { limit?: number } = {}): Promise<ListBetaGroupsResponse> {
     const { limit = 100 } = args;
@@ -85,5 +93,109 @@ export class BetaHandlers {
       success: true, 
       message: "Tester removed from group successfully" 
     };
+  }
+
+  async listBetaFeedbackScreenshots(args: ListBetaFeedbackScreenshotSubmissionsRequest): Promise<ListBetaFeedbackScreenshotSubmissionsResponse> {
+    const { 
+      appId, 
+      bundleId,
+      buildId,
+      devicePlatform,
+      appPlatform,
+      deviceModel,
+      osVersion,
+      testerId,
+      limit = 50,
+      sort = "-createdDate",
+      includeBuilds = false,
+      includeTesters = false
+    } = args;
+    
+    // Require either appId or bundleId
+    if (!appId && !bundleId) {
+      throw new Error('Either appId or bundleId must be provided');
+    }
+    
+    // If bundleId is provided but not appId, look up the app
+    let finalAppId = appId;
+    if (!appId && bundleId) {
+      const app = await this.appHandlers.findAppByBundleId(bundleId);
+      if (!app) {
+        throw new Error(`No app found with bundle ID: ${bundleId}`);
+      }
+      finalAppId = app.id;
+    }
+
+    // Build query parameters
+    const params: Record<string, any> = {
+      limit: sanitizeLimit(limit),
+      sort
+    };
+
+    // Add filters if provided
+    if (buildId) {
+      params['filter[build]'] = buildId;
+    }
+    if (devicePlatform) {
+      params['filter[devicePlatform]'] = devicePlatform;
+    }
+    if (appPlatform) {
+      params['filter[appPlatform]'] = appPlatform;
+    }
+    if (deviceModel) {
+      params['filter[deviceModel]'] = deviceModel;
+    }
+    if (osVersion) {
+      params['filter[osVersion]'] = osVersion;
+    }
+    if (testerId) {
+      params['filter[tester]'] = testerId;
+    }
+
+    // Add includes if requested
+    const includes: string[] = [];
+    if (includeBuilds) includes.push('build');
+    if (includeTesters) includes.push('tester');
+    if (includes.length > 0) {
+      params.include = includes.join(',');
+    }
+
+    // Add field selections for better performance
+    params['fields[betaFeedbackScreenshotSubmissions]'] = 'createdDate,comment,email,deviceModel,osVersion,locale,timeZone,architecture,connectionType,pairedAppleWatch,appUptimeInMilliseconds,diskBytesAvailable,diskBytesTotal,batteryPercentage,screenWidthInPoints,screenHeightInPoints,appPlatform,devicePlatform,deviceFamily,buildBundleId,screenshots,build,tester';
+
+    return this.client.get<ListBetaFeedbackScreenshotSubmissionsResponse>(
+      `/apps/${finalAppId}/betaFeedbackScreenshotSubmissions`, 
+      params
+    );
+  }
+
+  async getBetaFeedbackScreenshot(args: { 
+    feedbackId: string;
+    includeBuilds?: boolean;
+    includeTesters?: boolean;
+  }): Promise<BetaFeedbackScreenshotSubmissionResponse> {
+    const { feedbackId, includeBuilds = false, includeTesters = false } = args;
+    
+    if (!feedbackId) {
+      throw new Error('feedbackId is required');
+    }
+
+    const params: Record<string, any> = {};
+
+    // Add includes if requested
+    const includes: string[] = [];
+    if (includeBuilds) includes.push('build');
+    if (includeTesters) includes.push('tester');
+    if (includes.length > 0) {
+      params.include = includes.join(',');
+    }
+
+    // Add field selections
+    params['fields[betaFeedbackScreenshotSubmissions]'] = 'createdDate,comment,email,deviceModel,osVersion,locale,timeZone,architecture,connectionType,pairedAppleWatch,appUptimeInMilliseconds,diskBytesAvailable,diskBytesTotal,batteryPercentage,screenWidthInPoints,screenHeightInPoints,appPlatform,devicePlatform,deviceFamily,buildBundleId,screenshots,build,tester';
+
+    return this.client.get<BetaFeedbackScreenshotSubmissionResponse>(
+      `/betaFeedbackScreenshotSubmissions/${feedbackId}`, 
+      params
+    );
   }
 }
