@@ -289,6 +289,46 @@ class AppStoreConnectServer {
         
         // App Store Version Localization Tools
         {
+          name: "create_app_store_version",
+          description: "Create a new app store version for an app",
+          inputSchema: {
+            type: "object",
+            properties: {
+              appId: {
+                type: "string",
+                description: "The ID of the app"
+              },
+              platform: {
+                type: "string",
+                description: "The platform for this version",
+                enum: ["IOS", "MAC_OS", "TV_OS", "VISION_OS"]
+              },
+              versionString: {
+                type: "string",
+                description: "Version string in format X.Y or X.Y.Z (e.g., '1.0' or '1.0.0')"
+              },
+              copyright: {
+                type: "string",
+                description: "Copyright text for this version (optional)"
+              },
+              releaseType: {
+                type: "string",
+                description: "How the app should be released",
+                enum: ["MANUAL", "AFTER_APPROVAL", "SCHEDULED"]
+              },
+              earliestReleaseDate: {
+                type: "string",
+                description: "Earliest release date in ISO 8601 format (required when releaseType is SCHEDULED)"
+              },
+              buildId: {
+                type: "string",
+                description: "ID of the build to associate with this version (optional)"
+              }
+            },
+            required: ["appId", "platform", "versionString"]
+          }
+        },
+        {
           name: "list_app_store_versions",
           description: "Get all app store versions for a specific app",
           inputSchema: {
@@ -920,6 +960,9 @@ class AppStoreConnectServer {
             return formatResponse(result);
 
           // App Store Version Localizations
+          case "create_app_store_version":
+            return { toolResult: await this.localizationHandlers.createAppStoreVersion(args as any) };
+          
           case "list_app_store_versions":
             return { toolResult: await this.localizationHandlers.listAppStoreVersions(args as any) };
           

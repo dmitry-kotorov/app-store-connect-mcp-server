@@ -48,6 +48,7 @@ This server transforms complex App Store Connect operations into simple conversa
   - View beta feedback with screenshots and device information
 
 - **App Store Version Localizations** ✨ **NEW**
+  - Create new app store versions with release scheduling
   - List all app store versions for an app
   - List all localizations for an app version
   - Get specific localization details
@@ -273,6 +274,26 @@ Get detailed information about a specific beta feedback screenshot.
 ```
 
 ### 🌍 App Store Version Localization Tools
+
+#### `create_app_store_version`
+Create a new app store version for an app.
+
+**Parameters:**
+- `appId` (required): The ID of the app
+- `platform` (required): The platform (IOS, MAC_OS, TV_OS, VISION_OS)
+- `versionString` (required): Version string in format X.Y or X.Y.Z (e.g., '1.0' or '1.0.0')
+- `copyright` (optional): Copyright text for this version
+- `releaseType` (optional): How the app should be released (MANUAL, AFTER_APPROVAL, SCHEDULED)
+- `earliestReleaseDate` (optional): ISO 8601 date string (required when releaseType is SCHEDULED)
+- `buildId` (optional): ID of the build to associate with this version
+
+**Example:**
+```
+"Create iOS version 2.0.0 for app 123456789"
+"Create macOS version 1.5.0 for app 123456789 with manual release"
+"Create scheduled iOS version 2.1.0 for app 123456789 releasing on 2024-02-01"
+"Create version 1.2.0 for app 123456789 with build BUILD456 and copyright '2024 My Company'"
+```
 
 #### `list_app_store_versions`
 Get all app store versions for a specific app.
