@@ -109,3 +109,38 @@ export interface ListAppStoreVersionsResponse {
     };
   };
 }
+
+export interface AppStoreVersionCreateRequest {
+  data: {
+    type: 'appStoreVersions';
+    attributes: {
+      platform: 'IOS' | 'MAC_OS' | 'TV_OS' | 'VISION_OS';
+      versionString: string;
+      copyright?: string;
+      releaseType?: 'MANUAL' | 'AFTER_APPROVAL' | 'SCHEDULED';
+      earliestReleaseDate?: string; // ISO 8601 date string
+    };
+    relationships: {
+      app: {
+        data: {
+          type: 'apps';
+          id: string;
+        };
+      };
+      build?: {
+        data: {
+          type: 'builds';
+          id: string;
+        };
+      };
+    };
+  };
+}
+
+export interface AppStoreVersionResponse {
+  data: AppStoreVersion;
+  included?: any[];
+  links?: {
+    self: string;
+  };
+}

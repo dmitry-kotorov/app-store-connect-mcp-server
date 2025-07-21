@@ -4,7 +4,9 @@ import {
   AppStoreVersionLocalizationResponse,
   AppStoreVersionLocalizationUpdateRequest,
   AppStoreVersionLocalizationField,
-  ListAppStoreVersionsResponse
+  ListAppStoreVersionsResponse,
+  AppStoreVersionCreateRequest,
+  AppStoreVersionResponse
 } from '../types/index.js';
 import { validateRequired, sanitizeLimit } from '../utils/index.js';
 
@@ -109,6 +111,79 @@ export class LocalizationHandlers {
     
     return this.client.patch<AppStoreVersionLocalizationResponse>(
       `/appStoreVersionLocalizations/${localizationId}`,
+      requestData
+    );
+  }
+
+  async createAppStoreVersion(args: {
+    appId: string;
+    platform: 'IOS' | 'MAC_OS' | 'TV_OS' | 'VISION_OS';
+    versionString: string;
+    copyright?: string;
+    releaseType?: 'MANUAL' | 'AFTER_APPROVAL' | 'SCHEDULED';
+    earliestReleaseDate?: string;
+    buildId?: string;
+  }): Promise<AppStoreVersionResponse> {
+    const { 
+      appId, 
+      platform, 
+      versionString, 
+      copyright, 
+      releaseType, 
+      earliestReleaseDate,
+      buildId 
+    } = args;
+    
+    validateRequired(args, ['appId', 'platform', 'versionString']);
+    
+    // Validate version string format
+    const versionRegex = /^\d+\.\d+(\.\d+)?$/;
+    if (!versionRegex.test(versionString)) {
+      throw new Error('Version string must be in format X.Y or X.Y.Z (e.g., 1.0 or 1.0.0)');
+    }
+    
+    // Validate release date if provided
+    if (earliestReleaseDate) {
+      const date = new Date(earliestReleaseDate);
+      if (isNaN(date.getTime())) {
+        throw new Error('Invalid release date format. Use ISO 8601 format (e.g., 2024-01-01T00:00:00Z)');
+      }
+      if (releaseType !== 'SCHEDULED') {
+        throw new Error('earliestReleaseDate can only be set when releaseType is SCHEDULED');
+      }
+    }
+    
+    const requestData: AppStoreVersionCreateRequest = {
+      data: {
+        type: 'appStoreVersions',
+        attributes: {
+          platform,
+          versionString,
+          ...(copyright && { copyright }),
+          ...(releaseType && { releaseType }),
+          ...(earliestReleaseDate && { earliestReleaseDate })
+        },
+        relationships: {
+          app: {
+            data: {
+              type: 'apps',
+              id: appId
+            }
+          },
+          ...(buildId && {
+            build: {
+              data: {
+                type: 'builds',
+                id: buildId
+              }
+            }
+          })
+        }
+      }
+    };
+    
+    return this.client.post<AppStoreVersionResponse>(
+      '/appStoreVersions',
       requestData
     );
   }
