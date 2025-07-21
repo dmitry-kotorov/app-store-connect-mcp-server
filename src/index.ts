@@ -19,7 +19,8 @@ import {
   DeviceHandlers, 
   UserHandlers, 
   AnalyticsHandlers,
-  XcodeHandlers 
+  XcodeHandlers,
+  LocalizationHandlers 
 } from './handlers/index.js';
 
 // Load environment variables
@@ -40,6 +41,7 @@ class AppStoreConnectServer {
   private userHandlers: UserHandlers;
   private analyticsHandlers: AnalyticsHandlers;
   private xcodeHandlers: XcodeHandlers;
+  private localizationHandlers: LocalizationHandlers;
 
   constructor() {
     this.server = new Server({
@@ -59,6 +61,7 @@ class AppStoreConnectServer {
     this.userHandlers = new UserHandlers(this.client);
     this.analyticsHandlers = new AnalyticsHandlers(this.client, config);
     this.xcodeHandlers = new XcodeHandlers();
+    this.localizationHandlers = new LocalizationHandlers(this.client);
 
     this.setupHandlers();
   }
@@ -281,6 +284,123 @@ class AppStoreConnectServer {
               }
             },
             required: ["feedbackId"]
+          }
+        },
+        
+        // App Store Version Localization Tools
+        {
+          name: "list_app_store_versions",
+          description: "Get all app store versions for a specific app",
+          inputSchema: {
+            type: "object",
+            properties: {
+              appId: {
+                type: "string",
+                description: "The ID of the app"
+              },
+              limit: {
+                type: "number",
+                description: "Maximum number of versions to return (default: 100)",
+                minimum: 1,
+                maximum: 200
+              },
+              filter: {
+                type: "object",
+                properties: {
+                  platform: {
+                    type: "string",
+                    description: "Filter by platform (IOS, MAC_OS, TV_OS)",
+                    enum: ["IOS", "MAC_OS", "TV_OS"]
+                  },
+                  versionString: {
+                    type: "string",
+                    description: "Filter by version string (e.g., '1.0.0')"
+                  },
+                  appStoreState: {
+                    type: "string",
+                    description: "Filter by app store state",
+                    enum: [
+                      "DEVELOPER_REMOVED_FROM_SALE",
+                      "DEVELOPER_REJECTED", 
+                      "IN_REVIEW",
+                      "INVALID_BINARY",
+                      "METADATA_REJECTED",
+                      "PENDING_APPLE_RELEASE",
+                      "PENDING_CONTRACT",
+                      "PENDING_DEVELOPER_RELEASE",
+                      "PREPARE_FOR_SUBMISSION",
+                      "PREORDER_READY_FOR_SALE",
+                      "PROCESSING_FOR_APP_STORE",
+                      "READY_FOR_SALE",
+                      "REJECTED",
+                      "REMOVED_FROM_SALE",
+                      "WAITING_FOR_EXPORT_COMPLIANCE",
+                      "WAITING_FOR_REVIEW",
+                      "REPLACED_WITH_NEW_VERSION"
+                    ]
+                  }
+                },
+                description: "Optional filters for app store versions"
+              }
+            },
+            required: ["appId"]
+          }
+        },
+        {
+          name: "list_app_store_version_localizations",
+          description: "Get all localizations for a specific app store version",
+          inputSchema: {
+            type: "object",
+            properties: {
+              appStoreVersionId: {
+                type: "string",
+                description: "The ID of the app store version"
+              },
+              limit: {
+                type: "number",
+                description: "Maximum number of localizations to return (default: 100)",
+                minimum: 1,
+                maximum: 200
+              }
+            },
+            required: ["appStoreVersionId"]
+          }
+        },
+        {
+          name: "get_app_store_version_localization",
+          description: "Get detailed information about a specific app store version localization",
+          inputSchema: {
+            type: "object",
+            properties: {
+              localizationId: {
+                type: "string",
+                description: "The ID of the app store version localization"
+              }
+            },
+            required: ["localizationId"]
+          }
+        },
+        {
+          name: "update_app_store_version_localization",
+          description: "Update a specific field in an app store version localization",
+          inputSchema: {
+            type: "object",
+            properties: {
+              localizationId: {
+                type: "string",
+                description: "The ID of the app store version localization to update"
+              },
+              field: {
+                type: "string",
+                enum: ["description", "keywords", "marketingUrl", "promotionalText", "supportUrl", "whatsNew"],
+                description: "The field to update"
+              },
+              value: {
+                type: "string",
+                description: "The new value for the field"
+              }
+            },
+            required: ["localizationId", "field", "value"]
           }
         },
 
@@ -798,6 +918,19 @@ class AppStoreConnectServer {
             }
             // Otherwise format as text
             return formatResponse(result);
+
+          // App Store Version Localizations
+          case "list_app_store_versions":
+            return { toolResult: await this.localizationHandlers.listAppStoreVersions(args as any) };
+          
+          case "list_app_store_version_localizations":
+            return { toolResult: await this.localizationHandlers.listAppStoreVersionLocalizations(args as any) };
+          
+          case "get_app_store_version_localization":
+            return { toolResult: await this.localizationHandlers.getAppStoreVersionLocalization(args as any) };
+          
+          case "update_app_store_version_localization":
+            return { toolResult: await this.localizationHandlers.updateAppStoreVersionLocalization(args as any) };
 
           // Bundle IDs
           case "create_bundle_id":

@@ -15,7 +15,7 @@ export class AppStoreConnectClient {
     });
   }
 
-  async request<T = any>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', url: string, data?: any, params?: Record<string, any>): Promise<T> {
+  async request<T = any>(method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH', url: string, data?: any, params?: Record<string, any>): Promise<T> {
     const token = await this.authService.generateToken();
     
     const response = await this.axiosInstance.request<T>({
@@ -46,6 +46,10 @@ export class AppStoreConnectClient {
 
   async delete<T = any>(url: string, data?: any): Promise<T> {
     return this.request<T>('DELETE', url, data);
+  }
+
+  async patch<T = any>(url: string, data: any): Promise<T> {
+    return this.request<T>('PATCH', url, data);
   }
 
   async downloadFromUrl(url: string): Promise<any> {
