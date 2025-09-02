@@ -14,3 +14,5 @@ export * from './users.js';
 export * from './analytics.js';
 // Screenshot types
 export * from './screenshots.js';
+// Localization types
+export * from './localizations.js';

@@ -36,6 +36,9 @@ export class AppStoreConnectClient {
     async delete(url, data) {
         return this.request('DELETE', url, data);
     }
+    async patch(url, data) {
+        return this.request('PATCH', url, data);
+    }
     async downloadFromUrl(url) {
         const token = await this.authService.generateToken();
         const response = await axios.get(url, {

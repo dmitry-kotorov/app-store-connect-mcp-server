@@ -120,7 +120,7 @@ Add the following to your Claude Desktop configuration file:
       "command": "npx",
       "args": [
         "-y",
-        "@joshuarileydev/app-store-connect-mcp-server"
+        "app-store-connect-mcp-server"
       ],
       "env": {
         "APP_STORE_CONNECT_KEY_ID": "YOUR_KEY_ID",
