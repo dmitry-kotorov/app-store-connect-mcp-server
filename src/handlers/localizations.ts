@@ -1,12 +1,15 @@
 import { AppStoreConnectClient } from '../services/index.js';
 import { 
-  ListAppStoreVersionLocalizationsResponse, 
+  ListAppStoreVersionLocalizationsResponse,
   AppStoreVersionLocalizationResponse,
   AppStoreVersionLocalizationUpdateRequest,
   AppStoreVersionLocalizationField,
   ListAppStoreVersionsResponse,
   AppStoreVersionCreateRequest,
-  AppStoreVersionResponse
+  AppStoreVersionResponse,
+  ListAppCustomProductPageVersionsResponse,
+  ListAppCustomProductPageLocalizationsResponse,
+  AppCustomProductPageLocalizationsByPageResponse
 } from '../types/index.js';
 import { validateRequired, sanitizeLimit } from '../utils/index.js';
 
@@ -186,5 +189,81 @@ export class LocalizationHandlers {
       '/appStoreVersions',
       requestData
     );
+  }
+
+  async listAppCustomProductPageVersions(args: {
+    appCustomProductPageId: string;
+    limit?: number;
+  }): Promise<ListAppCustomProductPageVersionsResponse> {
+    const { appCustomProductPageId, limit = 100 } = args;
+
+    validateRequired(args, ['appCustomProductPageId']);
+
+    const params: Record<string, any> = {
+      limit: sanitizeLimit(limit),
+      'filter[appCustomProductPage]': appCustomProductPageId
+    };
+
+    return this.client.get<ListAppCustomProductPageVersionsResponse>(
+      '/appCustomProductPageVersions',
+      params
+    );
+  }
+
+  async listAppCustomProductPageVersionLocalizations(args: {
+    appCustomProductPageVersionId: string;
+    limit?: number;
+  }): Promise<ListAppCustomProductPageLocalizationsResponse> {
+    const { appCustomProductPageVersionId, limit = 200 } = args;
+
+    validateRequired(args, ['appCustomProductPageVersionId']);
+
+    const params: Record<string, any> = {
+      limit: sanitizeLimit(limit),
+      'filter[appCustomProductPageVersion]': appCustomProductPageVersionId
+    };
+
+    return this.client.get<ListAppCustomProductPageLocalizationsResponse>(
+      '/appCustomProductPageLocalizations',
+      params
+    );
+  }
+
+  async listAppCustomProductPageLocalizations(args: {
+    appCustomProductPageId: string;
+    versionLimit?: number;
+    localizationLimit?: number;
+  }): Promise<AppCustomProductPageLocalizationsByPageResponse> {
+    const { appCustomProductPageId, versionLimit = 100, localizationLimit = 200 } = args;
+
+    validateRequired(args, ['appCustomProductPageId']);
+
+    const versionsResponse = await this.listAppCustomProductPageVersions({
+      appCustomProductPageId,
+      limit: versionLimit
+    });
+
+    const versionsWithLocalizations = await Promise.all(
+      versionsResponse.data.map(async (version) => {
+        const localizationsResponse = await this.listAppCustomProductPageVersionLocalizations({
+          appCustomProductPageVersionId: version.id,
+          limit: localizationLimit
+        });
+
+        return {
+          version,
+          localizations: localizationsResponse.data,
+          links: localizationsResponse.links,
+          meta: localizationsResponse.meta
+        };
+      })
+    );
+
+    return {
+      appCustomProductPageId,
+      versions: versionsWithLocalizations,
+      links: versionsResponse.links,
+      meta: versionsResponse.meta
+    };
   }
 }
