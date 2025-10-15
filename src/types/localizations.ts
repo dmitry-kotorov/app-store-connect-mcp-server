@@ -144,3 +144,92 @@ export interface AppStoreVersionResponse {
     self: string;
   };
 }
+
+// Custom Product Page Localization Types
+
+export interface AppCustomProductPageLocalization {
+  id: string;
+  type: 'appCustomProductPageLocalizations';
+  attributes: {
+    locale: string;
+    header?: string;
+    subheading?: string;
+    body?: string;
+    footer?: string;
+    promotionalText?: string;
+    marketingUrl?: string;
+  };
+  relationships?: {
+    appCustomProductPageVersion?: {
+      data: {
+        type: 'appCustomProductPageVersions';
+        id: string;
+      };
+    };
+  };
+}
+
+export interface ListAppCustomProductPageLocalizationsResponse {
+  data: AppCustomProductPageLocalization[];
+  links?: {
+    self: string;
+    next?: string;
+  };
+  meta?: {
+    paging: {
+      total: number;
+      limit: number;
+    };
+  };
+}
+
+export interface AppCustomProductPageVersion {
+  id: string;
+  type: 'appCustomProductPageVersions';
+  attributes: {
+    state?: string;
+    platform?: string;
+    createdDate?: string;
+    lastModifiedDate?: string;
+  };
+  relationships?: {
+    appCustomProductPage?: {
+      data: {
+        type: 'appCustomProductPages';
+        id: string;
+      };
+    };
+    appCustomProductPageLocalizations?: {
+      data: Array<{
+        type: 'appCustomProductPageLocalizations';
+        id: string;
+      }>;
+    };
+  };
+}
+
+export interface ListAppCustomProductPageVersionsResponse {
+  data: AppCustomProductPageVersion[];
+  links?: {
+    self: string;
+    next?: string;
+  };
+  meta?: {
+    paging: {
+      total: number;
+      limit: number;
+    };
+  };
+}
+
+export interface AppCustomProductPageLocalizationsByPageResponse {
+  appCustomProductPageId: string;
+  versions: Array<{
+    version: AppCustomProductPageVersion;
+    localizations: AppCustomProductPageLocalization[];
+    links?: ListAppCustomProductPageLocalizationsResponse['links'];
+    meta?: ListAppCustomProductPageLocalizationsResponse['meta'];
+  }>;
+  links?: ListAppCustomProductPageVersionsResponse['links'];
+  meta?: ListAppCustomProductPageVersionsResponse['meta'];
+}

@@ -443,6 +443,32 @@ class AppStoreConnectServer {
             required: ["localizationId", "field", "value"]
           }
         },
+        {
+          name: "list_app_custom_product_page_localizations",
+          description: "List all custom product page versions and their localizations for a specific page",
+          inputSchema: {
+            type: "object",
+            properties: {
+              appCustomProductPageId: {
+                type: "string",
+                description: "The ID of the custom product page"
+              },
+              versionLimit: {
+                type: "number",
+                description: "Maximum number of versions to return (default: 100)",
+                minimum: 1,
+                maximum: 200
+              },
+              localizationLimit: {
+                type: "number",
+                description: "Maximum number of localizations to return per version (default: 200)",
+                minimum: 1,
+                maximum: 200
+              }
+            },
+            required: ["appCustomProductPageId"]
+          }
+        },
 
         // Bundle ID Tools
         {
@@ -974,6 +1000,9 @@ class AppStoreConnectServer {
           
           case "update_app_store_version_localization":
             return { toolResult: await this.localizationHandlers.updateAppStoreVersionLocalization(args as any) };
+
+          case "list_app_custom_product_page_localizations":
+            return { toolResult: await this.localizationHandlers.listAppCustomProductPageLocalizations(args as any) };
 
           // Bundle IDs
           case "create_bundle_id":
