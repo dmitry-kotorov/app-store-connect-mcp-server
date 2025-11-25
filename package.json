@@ -10,7 +10,8 @@
     "appstore-connect-mcp": "./dist/src/index.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.15.0",
+    "@modelcontextprotocol/sdk": "^1.20.0",
+    "appstore-connect-mcp-server": "github:dmitry-kotorov/app-store-connect-mcp-server",
     "axios": "^1.6.0",
     "jsonwebtoken": "^9.0.0",
     "sharp": "^0.32.0"
@@ -19,6 +20,7 @@
     "@types/jsonwebtoken": "^9.0.0",
     "@types/node": "^18.0.0",
     "shx": "^0.3.4",
-    "typescript": "^5.6.2"
+    "typescript": "^5.9.3",
+    "zod": "^3.25.76"
   }
 }
