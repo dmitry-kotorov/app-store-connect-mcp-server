@@ -99,6 +99,41 @@ npx @smithery/cli install appstore-connect-mcp-server --client claude
 npm install @joshuarileydev/app-store-connect-mcp-server
 ```
 
+### Using a Local Checkout
+
+If you want Claude Desktop to run the version from this repository instead of downloading the published package:
+
+1. Install dependencies and build once:
+
+   ```bash
+   npm install
+   npm run build
+   ```
+
+2. Point the Claude Desktop configuration at the built entry point (`dist/src/index.js`). Example:
+
+   ```json
+   {
+     "mcpServers": {
+       "app-store-connect": {
+         "command": "/usr/bin/env",
+         "args": [
+           "node",
+           "/Users/you/path/to/app-store-connect-mcp-server/dist/src/index.js"
+         ],
+         "env": {
+           "APP_STORE_CONNECT_KEY_ID": "YOUR_KEY_ID",
+           "APP_STORE_CONNECT_ISSUER_ID": "YOUR_ISSUER_ID",
+           "APP_STORE_CONNECT_P8_PATH": "/path/to/your/auth-key.p8",
+           "APP_STORE_CONNECT_VENDOR_NUMBER": "YOUR_VENDOR_NUMBER_OPTIONAL"
+         }
+       }
+     }
+   }
+   ```
+
+   Using `/usr/bin/env node` keeps the config portable, but you can replace it with the absolute path to `node` if you prefer. Restart Claude Desktop after updating the file so it reloads the server.
+
 ## Configuration
 
 Add the following to your Claude Desktop configuration file:
