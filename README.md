@@ -134,6 +134,22 @@ If you want Claude Desktop to run the version from this repository instead of do
 
    Using `/usr/bin/env node` keeps the config portable, but you can replace it with the absolute path to `node` if you prefer. Restart Claude Desktop after updating the file so it reloads the server.
 
+   For the Codex CLI (or any other MCP client that uses a TOML configuration), update `~/.codex/config.toml` to launch the same local build:
+
+   ```toml
+   [mcp_servers.app-store-connect]
+   command = "/usr/bin/env"
+   args = ["node", "/Users/you/path/to/app-store-connect-mcp-server/dist/src/index.js"]
+   env = {
+     APP_STORE_CONNECT_KEY_ID = "YOUR_KEY_ID",
+     APP_STORE_CONNECT_ISSUER_ID = "YOUR_ISSUER_ID",
+     APP_STORE_CONNECT_P8_PATH = "/path/to/your/auth-key.p8",
+     APP_STORE_CONNECT_VENDOR_NUMBER = "YOUR_VENDOR_NUMBER_OPTIONAL"
+   }
+   ```
+
+   Adjust the path to match your checkout. Restart the Codex CLI (or run `codex reload`) so it reloads the updated server definition.
+
 ## Configuration
 
 Add the following to your Claude Desktop configuration file:
