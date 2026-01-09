@@ -40,7 +40,10 @@ const main = async () => {
     console.log(`\nPlatform: ${version.attributes.platform}`);
     const locs = await localizationHandlers.listAppStoreVersionLocalizations({
       appStoreVersionId: version.id,
-      limit: 200
+      limit: 200,
+      fields: {
+        appStoreVersionLocalizations: ['locale', 'whatsNew']
+      }
     });
 
     for (const localization of locs.data) {

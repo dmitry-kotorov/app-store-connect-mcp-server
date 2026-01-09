@@ -36,6 +36,26 @@ export interface ListAppStoreVersionLocalizationsResponse {
   };
 }
 
+export type AppStoreVersionLocalizationFieldOption =
+  | 'description'
+  | 'keywords'
+  | 'locale'
+  | 'marketingUrl'
+  | 'promotionalText'
+  | 'supportUrl'
+  | 'whatsNew';
+
+export interface ListAppStoreVersionLocalizationsParams {
+  appStoreVersionId: string;
+  limit?: number;
+  filter?: {
+    locale?: string;
+  };
+  fields?: {
+    appStoreVersionLocalizations?: AppStoreVersionLocalizationFieldOption[];
+  };
+}
+
 export interface AppStoreVersionLocalizationResponse {
   data: AppStoreVersionLocalization;
   included?: any[];

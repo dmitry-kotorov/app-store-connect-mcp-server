@@ -4,6 +4,7 @@ import {
   AppStoreVersionLocalizationResponse,
   AppStoreVersionLocalizationUpdateRequest,
   AppStoreVersionLocalizationField,
+  AppStoreVersionLocalization,
   ListAppStoreVersionsResponse,
   AppStoreVersionCreateRequest,
   AppStoreVersionResponse,
@@ -11,7 +12,7 @@ import {
   ListAppCustomProductPageLocalizationsResponse,
   AppCustomProductPageLocalizationsByPageResponse
 } from '../types/index.js';
-import { validateRequired, sanitizeLimit } from '../utils/index.js';
+import { validateRequired, sanitizeLimit, buildFilterParams, buildFieldParams } from '../utils/index.js';
 
 export class LocalizationHandlers {
   constructor(private client: AppStoreConnectClient) {}
@@ -54,19 +55,90 @@ export class LocalizationHandlers {
   async listAppStoreVersionLocalizations(args: {
     appStoreVersionId: string;
     limit?: number;
+    filter?: {
+      locale?: string;
+    };
+    fields?: {
+      appStoreVersionLocalizations?: (
+        'description' |
+        'keywords' |
+        'locale' |
+        'marketingUrl' |
+        'promotionalText' |
+        'supportUrl' |
+        'whatsNew'
+      )[];
+    };
   }): Promise<ListAppStoreVersionLocalizationsResponse> {
-    const { appStoreVersionId, limit = 100 } = args;
+    const { appStoreVersionId, limit = 100, filter, fields } = args;
     
     validateRequired(args, ['appStoreVersionId']);
-    
+
+    const sanitizedLimit = sanitizeLimit(limit);
+
     const params: Record<string, any> = {
-      limit: sanitizeLimit(limit)
+      limit: sanitizedLimit
     };
-    
-    return this.client.get<ListAppStoreVersionLocalizationsResponse>(
+
+    Object.assign(params, buildFilterParams(filter));
+    Object.assign(params, buildFieldParams(fields));
+
+    const response = await this.client.get<ListAppStoreVersionLocalizationsResponse>(
       `/appStoreVersions/${appStoreVersionId}/appStoreVersionLocalizations`,
       params
     );
+
+    // Fallback enforcement: if the upstream API ignores filter/fields/limit, trim locally
+    let data = response.data ?? [];
+    let changed = false;
+
+    if (filter?.locale) {
+      data = data.filter((loc) => loc.attributes?.locale === filter.locale);
+      changed = true;
+    }
+
+    if (fields?.appStoreVersionLocalizations?.length) {
+      const keepFields = new Set([
+        ...fields.appStoreVersionLocalizations,
+        'locale' // always keep locale so the record stays identifiable
+      ]);
+      data = data.map((loc) => ({
+        ...loc,
+        attributes: Object.fromEntries(
+          Object.entries(loc.attributes || {}).filter(([key]) => keepFields.has(key as any))
+        ) as AppStoreVersionLocalization['attributes']
+      }));
+      changed = true;
+    }
+
+    if (data.length > sanitizedLimit) {
+      data = data.slice(0, sanitizedLimit);
+      changed = true;
+    }
+
+    if (!changed) {
+      return response;
+    }
+
+    const meta = {
+      ...(response.meta || {}),
+      paging: {
+        total: data.length,
+        limit: sanitizedLimit
+      }
+    };
+
+    const links = response.links ? { ...response.links } : undefined;
+    if (links?.next) {
+      delete links.next;
+    }
+
+    return {
+      ...response,
+      data,
+      meta,
+      links
+    };
   }
 
   async getAppStoreVersionLocalization(args: {
