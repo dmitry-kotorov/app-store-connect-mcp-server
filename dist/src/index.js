@@ -376,6 +376,38 @@ class AppStoreConnectServer {
                             description: "Maximum number of localizations to return (default: 100)",
                             minimum: 1,
                             maximum: 200
+                        },
+                        filter: {
+                            type: "object",
+                            properties: {
+                                locale: {
+                                    type: "string",
+                                    description: "Filter by locale (e.g., en-US)"
+                                }
+                            },
+                            description: "Optional filters for localizations"
+                        },
+                        fields: {
+                            type: "object",
+                            properties: {
+                                appStoreVersionLocalizations: {
+                                    type: "array",
+                                    items: {
+                                        type: "string",
+                                        enum: [
+                                            "description",
+                                            "keywords",
+                                            "locale",
+                                            "marketingUrl",
+                                            "promotionalText",
+                                            "supportUrl",
+                                            "whatsNew"
+                                        ]
+                                    },
+                                    description: "Fields to include for app store version localizations"
+                                }
+                            },
+                            description: "Optional fields selection for localizations"
                         }
                     },
                     required: ["appStoreVersionId"]
