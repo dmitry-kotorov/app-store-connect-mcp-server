@@ -88,7 +88,7 @@ export class LocalizationHandlers {
       params
     );
 
-    // Fallback enforcement: if the upstream API ignores filter/fields/limit, trim locally
+    // Fallback enforcement: if the upstream API ignores filter/fields/limit/offset, trim locally
     let data = response.data ?? [];
     let changed = false;
 
@@ -111,6 +111,7 @@ export class LocalizationHandlers {
       changed = true;
     }
 
+    // Enforce limit locally in case the upstream ignores it
     if (data.length > sanitizedLimit) {
       data = data.slice(0, sanitizedLimit);
       changed = true;

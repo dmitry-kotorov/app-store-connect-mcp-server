@@ -980,7 +980,7 @@ class AppStoreConnectServer {
             }]
           };
         };
-        
+
         switch (request.params.name) {
           // App Management
           case "list_apps":
