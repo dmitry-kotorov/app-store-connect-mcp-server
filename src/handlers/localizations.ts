@@ -1,5 +1,5 @@
 import { AppStoreConnectClient } from '../services/index.js';
-import { 
+import {
   ListAppStoreVersionLocalizationsResponse,
   AppStoreVersionLocalizationResponse,
   AppStoreVersionLocalizationUpdateRequest,
@@ -10,7 +10,13 @@ import {
   AppStoreVersionResponse,
   ListAppCustomProductPageVersionsResponse,
   ListAppCustomProductPageLocalizationsResponse,
-  AppCustomProductPageLocalizationsByPageResponse
+  AppCustomProductPageLocalizationsByPageResponse,
+  ListAppInfosResponse,
+  ListAppInfoLocalizationsResponse,
+  AppInfoLocalizationResponse,
+  AppInfoLocalizationUpdateRequest,
+  AppInfoLocalizationField,
+  AppInfoLocalization
 } from '../types/index.js';
 import { validateRequired, sanitizeLimit, buildFilterParams, buildFieldParams } from '../utils/index.js';
 
@@ -261,6 +267,162 @@ export class LocalizationHandlers {
       requestData
     );
   }
+
+  // App Info Localization Methods
+
+  async listAppInfos(args: {
+    appId: string;
+    limit?: number;
+  }): Promise<ListAppInfosResponse> {
+    const { appId, limit = 100 } = args;
+
+    validateRequired(args, ['appId']);
+
+    const params: Record<string, any> = {
+      limit: sanitizeLimit(limit)
+    };
+
+    return this.client.get<ListAppInfosResponse>(
+      `/apps/${appId}/appInfos`,
+      params
+    );
+  }
+
+  async listAppInfoLocalizations(args: {
+    appInfoId: string;
+    limit?: number;
+    filter?: {
+      locale?: string;
+    };
+    fields?: {
+      appInfoLocalizations?: (
+        'locale' |
+        'name' |
+        'subtitle' |
+        'privacyPolicyUrl' |
+        'privacyChoicesUrl' |
+        'privacyPolicyText'
+      )[];
+    };
+  }): Promise<ListAppInfoLocalizationsResponse> {
+    const { appInfoId, limit = 100, filter, fields } = args;
+
+    validateRequired(args, ['appInfoId']);
+
+    const sanitizedLimit = sanitizeLimit(limit);
+
+    const params: Record<string, any> = {
+      limit: sanitizedLimit
+    };
+
+    Object.assign(params, buildFilterParams(filter));
+    Object.assign(params, buildFieldParams(fields));
+
+    const response = await this.client.get<ListAppInfoLocalizationsResponse>(
+      `/appInfos/${appInfoId}/appInfoLocalizations`,
+      params
+    );
+
+    // Fallback enforcement: if the upstream API ignores filter/fields/limit, trim locally
+    let data = response.data ?? [];
+    let changed = false;
+
+    if (filter?.locale) {
+      data = data.filter((loc) => loc.attributes?.locale === filter.locale);
+      changed = true;
+    }
+
+    if (fields?.appInfoLocalizations?.length) {
+      const keepFields = new Set([
+        ...fields.appInfoLocalizations,
+        'locale' // always keep locale so the record stays identifiable
+      ]);
+      data = data.map((loc) => ({
+        ...loc,
+        attributes: Object.fromEntries(
+          Object.entries(loc.attributes || {}).filter(([key]) => keepFields.has(key as any))
+        ) as AppInfoLocalization['attributes']
+      }));
+      changed = true;
+    }
+
+    if (data.length > sanitizedLimit) {
+      data = data.slice(0, sanitizedLimit);
+      changed = true;
+    }
+
+    if (!changed) {
+      return response;
+    }
+
+    const meta = {
+      ...(response.meta || {}),
+      paging: {
+        total: data.length,
+        limit: sanitizedLimit
+      }
+    };
+
+    const links = response.links ? { ...response.links } : undefined;
+    if (links?.next) {
+      delete links.next;
+    }
+
+    return {
+      ...response,
+      data,
+      meta,
+      links
+    };
+  }
+
+  async getAppInfoLocalization(args: {
+    localizationId: string;
+  }): Promise<AppInfoLocalizationResponse> {
+    const { localizationId } = args;
+
+    validateRequired(args, ['localizationId']);
+
+    return this.client.get<AppInfoLocalizationResponse>(
+      `/appInfoLocalizations/${localizationId}`
+    );
+  }
+
+  async updateAppInfoLocalization(args: {
+    localizationId: string;
+    field: AppInfoLocalizationField;
+    value: string;
+  }): Promise<AppInfoLocalizationResponse> {
+    const { localizationId, field, value } = args;
+
+    validateRequired(args, ['localizationId', 'field', 'value']);
+
+    const validFields: AppInfoLocalizationField[] = [
+      'name', 'subtitle', 'privacyPolicyUrl',
+      'privacyChoicesUrl', 'privacyPolicyText'
+    ];
+
+    if (!validFields.includes(field)) {
+      throw new Error(`Invalid field: ${field}. Must be one of: ${validFields.join(', ')}`);
+    }
+
+    const requestData: AppInfoLocalizationUpdateRequest = {
+      data: {
+        type: 'appInfoLocalizations',
+        id: localizationId,
+        attributes: {
+          [field]: value
+        }
+      }
+    };
+
+    return this.client.patch<AppInfoLocalizationResponse>(
+      `/appInfoLocalizations/${localizationId}`,
+      requestData
+    );
+  }
+
+  // Custom Product Page Methods
 
   async listAppCustomProductPageVersions(args: {
     appCustomProductPageId: string;

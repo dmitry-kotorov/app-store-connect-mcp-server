@@ -165,6 +165,121 @@ export interface AppStoreVersionResponse {
   };
 }
 
+// App Info Localization Types
+
+export interface AppInfoLocalization {
+  id: string;
+  type: 'appInfoLocalizations';
+  attributes: {
+    locale: string;
+    name?: string;
+    subtitle?: string;
+    privacyPolicyUrl?: string;
+    privacyChoicesUrl?: string;
+    privacyPolicyText?: string;
+  };
+  relationships?: {
+    appInfo?: {
+      data: {
+        type: 'appInfos';
+        id: string;
+      };
+    };
+  };
+}
+
+export interface ListAppInfoLocalizationsResponse {
+  data: AppInfoLocalization[];
+  links?: {
+    self: string;
+    next?: string;
+  };
+  meta?: {
+    paging: {
+      total: number;
+      limit: number;
+    };
+  };
+}
+
+export interface AppInfoLocalizationResponse {
+  data: AppInfoLocalization;
+  included?: any[];
+  links?: {
+    self: string;
+  };
+}
+
+export interface AppInfoLocalizationUpdateRequest {
+  data: {
+    type: 'appInfoLocalizations';
+    id: string;
+    attributes: {
+      name?: string;
+      subtitle?: string;
+      privacyPolicyUrl?: string;
+      privacyChoicesUrl?: string;
+      privacyPolicyText?: string;
+    };
+  };
+}
+
+export type AppInfoLocalizationField =
+  | 'name'
+  | 'subtitle'
+  | 'privacyPolicyUrl'
+  | 'privacyChoicesUrl'
+  | 'privacyPolicyText';
+
+export type AppInfoLocalizationFieldOption =
+  | 'locale'
+  | 'name'
+  | 'subtitle'
+  | 'privacyPolicyUrl'
+  | 'privacyChoicesUrl'
+  | 'privacyPolicyText';
+
+// App Info Types
+
+export interface AppInfo {
+  id: string;
+  type: 'appInfos';
+  attributes: {
+    appStoreState?: string;
+    appStoreAgeRating?: string;
+    brazilAgeRating?: string;
+    kidsAgeBand?: string;
+  };
+  relationships?: {
+    app?: {
+      data: {
+        type: 'apps';
+        id: string;
+      };
+    };
+    appInfoLocalizations?: {
+      data: Array<{
+        type: 'appInfoLocalizations';
+        id: string;
+      }>;
+    };
+  };
+}
+
+export interface ListAppInfosResponse {
+  data: AppInfo[];
+  links?: {
+    self: string;
+    next?: string;
+  };
+  meta?: {
+    paging: {
+      total: number;
+      limit: number;
+    };
+  };
+}
+
 // Custom Product Page Localization Types
 
 export interface AppCustomProductPageLocalization {
