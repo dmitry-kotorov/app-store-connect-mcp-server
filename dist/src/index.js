@@ -476,6 +476,115 @@ class AppStoreConnectServer {
                     required: ["appCustomProductPageId"]
                 }
             },
+            // App Info Localization Tools
+            {
+                name: "list_app_infos",
+                description: "List all appInfo objects for an app. Each appInfo represents a platform state and contains app-level metadata like age ratings. Use the returned appInfo ID to list or update appInfoLocalizations (subtitles, localized app names, etc.)",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        appId: {
+                            type: "string",
+                            description: "The ID of the app"
+                        },
+                        limit: {
+                            type: "number",
+                            description: "Maximum number of appInfos to return (default: 100)",
+                            minimum: 1,
+                            maximum: 200
+                        }
+                    },
+                    required: ["appId"]
+                }
+            },
+            {
+                name: "list_app_info_localizations",
+                description: "List all localizations for an appInfo object. Returns app-level localized fields including subtitle, localized app name, and privacy policy information.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        appInfoId: {
+                            type: "string",
+                            description: "The ID of the appInfo resource (get this from list_app_infos)"
+                        },
+                        limit: {
+                            type: "number",
+                            description: "Maximum number of localizations to return (default: 100)",
+                            minimum: 1,
+                            maximum: 200
+                        },
+                        filter: {
+                            type: "object",
+                            properties: {
+                                locale: {
+                                    type: "string",
+                                    description: "Filter by locale (e.g., en-US)"
+                                }
+                            },
+                            description: "Optional filters for localizations"
+                        },
+                        fields: {
+                            type: "object",
+                            properties: {
+                                appInfoLocalizations: {
+                                    type: "array",
+                                    items: {
+                                        type: "string",
+                                        enum: [
+                                            "locale",
+                                            "name",
+                                            "subtitle",
+                                            "privacyPolicyUrl",
+                                            "privacyChoicesUrl",
+                                            "privacyPolicyText"
+                                        ]
+                                    },
+                                    description: "Fields to include for app info localizations"
+                                }
+                            },
+                            description: "Optional fields selection for localizations"
+                        }
+                    },
+                    required: ["appInfoId"]
+                }
+            },
+            {
+                name: "get_app_info_localization",
+                description: "Get detailed information about a specific app info localization, including subtitle, localized app name, and privacy policy fields",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        localizationId: {
+                            type: "string",
+                            description: "The ID of the app info localization"
+                        }
+                    },
+                    required: ["localizationId"]
+                }
+            },
+            {
+                name: "update_app_info_localization",
+                description: "Update a specific field in an app info localization. Use this to update subtitles, localized app names, and privacy policy information.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        localizationId: {
+                            type: "string",
+                            description: "The ID of the app info localization to update"
+                        },
+                        field: {
+                            type: "string",
+                            enum: ["name", "subtitle", "privacyPolicyUrl", "privacyChoicesUrl", "privacyPolicyText"],
+                            description: "The field to update"
+                        },
+                        value: {
+                            type: "string",
+                            description: "The new value for the field"
+                        }
+                    },
+                    required: ["localizationId", "field", "value"]
+                }
+            },
             // Bundle ID Tools
             {
                 name: "create_bundle_id",
@@ -985,6 +1094,15 @@ class AppStoreConnectServer {
                         return formatResponse(await this.localizationHandlers.updateAppStoreVersionLocalization(args));
                     case "list_app_custom_product_page_localizations":
                         return formatResponse(await this.localizationHandlers.listAppCustomProductPageLocalizations(args));
+                    // App Info Localizations
+                    case "list_app_infos":
+                        return formatResponse(await this.localizationHandlers.listAppInfos(args));
+                    case "list_app_info_localizations":
+                        return formatResponse(await this.localizationHandlers.listAppInfoLocalizations(args));
+                    case "get_app_info_localization":
+                        return formatResponse(await this.localizationHandlers.getAppInfoLocalization(args));
+                    case "update_app_info_localization":
+                        return formatResponse(await this.localizationHandlers.updateAppInfoLocalization(args));
                     // Bundle IDs
                     case "create_bundle_id":
                         return formatResponse(await this.bundleHandlers.createBundleId(args));
