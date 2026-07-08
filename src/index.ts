@@ -20,7 +20,8 @@ import {
   UserHandlers, 
   AnalyticsHandlers,
   XcodeHandlers,
-  LocalizationHandlers 
+  LocalizationHandlers,
+  ReviewHandlers
 } from './handlers/index.js';
 
 // Load environment variables
@@ -42,6 +43,7 @@ class AppStoreConnectServer {
   private analyticsHandlers: AnalyticsHandlers;
   private xcodeHandlers: XcodeHandlers;
   private localizationHandlers: LocalizationHandlers;
+  private reviewHandlers: ReviewHandlers;
 
   constructor() {
     this.server = new Server({
@@ -62,6 +64,7 @@ class AppStoreConnectServer {
     this.analyticsHandlers = new AnalyticsHandlers(this.client, config);
     this.xcodeHandlers = new XcodeHandlers();
     this.localizationHandlers = new LocalizationHandlers(this.client);
+    this.reviewHandlers = new ReviewHandlers(this.client);
 
     this.setupHandlers();
   }
@@ -995,6 +998,62 @@ class AppStoreConnectServer {
             },
             required: ["projectPath"]
           }
+        },
+
+        // Customer Review Tools
+        {
+          name: "list_customer_reviews",
+          description: "List public App Store customer reviews for an app. Returns rating, title, body, reviewer nickname, territory, created date, and any developer response. Supports filtering by star rating and territory, sorting, and full pagination via allPages to pull the complete review history (useful for gathering testimonials per locale/territory). Identify the app with either appId or bundleId.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              appId: {
+                type: "string",
+                description: "The App Store app ID (e.g., '656212466')"
+              },
+              bundleId: {
+                type: "string",
+                description: "The bundle ID (e.g., 'com.example.app'). Used to resolve appId when appId is omitted."
+              },
+              rating: {
+                type: "array",
+                items: { type: "number", minimum: 1, maximum: 5 },
+                description: "Filter by star rating(s), 1-5 (e.g., [5] for five-star reviews only)"
+              },
+              territory: {
+                type: "array",
+                items: { type: "string" },
+                description: "Filter by App Store territory code(s), e.g. ['USA','GBR','ESP','RUS','FRA','DEU']"
+              },
+              sort: {
+                type: "string",
+                enum: ["rating", "-rating", "createdDate", "-createdDate"],
+                description: "Sort order (default: -createdDate, newest first)"
+              },
+              limit: {
+                type: "number",
+                description: "Page size, max 200 (default: 200)",
+                minimum: 1,
+                maximum: 200
+              },
+              allPages: {
+                type: "boolean",
+                description: "Follow pagination and fetch up to maxTotal reviews across pages (default: false)",
+                default: false
+              },
+              maxTotal: {
+                type: "number",
+                description: "Cap on total reviews fetched when allPages is true (default: 500)",
+                minimum: 1
+              },
+              includeResponse: {
+                type: "boolean",
+                description: "Include the developer response for each review (default: true)",
+                default: true
+              }
+            },
+            required: []
+          }
         }
     ];
 
@@ -1217,6 +1276,10 @@ class AppStoreConnectServer {
           // Xcode Development Tools
           case "list_schemes":
             return { toolResult: await this.xcodeHandlers.listSchemes(args as any) };
+
+          // Customer Reviews
+          case "list_customer_reviews":
+            return formatResponse(await this.reviewHandlers.listCustomerReviews(args as any));
 
           default:
             throw new McpError(
