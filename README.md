@@ -405,6 +405,75 @@ Update a specific field in an app store version localization.
 "Update what's new text for LOCALE123 to 'Bug fixes and performance improvements'"
 ```
 
+### 🎯 Custom Product Page Tools
+
+Custom Product Pages (CPPs) are alternate App Store listings targeted at
+specific audiences or ad campaigns. A page's `id` is the public **ppid** —
+the same value Apple Ads returns as `productPageId` on
+`CUSTOM_PRODUCT_PAGE` creatives — so listing pages resolves the
+UUID↔name pairing. CPP localizations expose only `locale` and
+`promotionalText`.
+
+#### `list_app_custom_product_pages`
+List all custom product pages for an app, each with name, App Store URL, and visibility.
+
+**Parameters:**
+- `appId` (required): The app ID (e.g. 656212466)
+- `visible` (optional): Filter to only visible/hidden pages (true/false)
+- `limit` (optional): Max pages to return (default: 100)
+
+**Example:**
+```
+"List all custom product pages for app 656212466"
+"Show only the visible custom product pages for app 656212466"
+```
+
+#### `list_app_custom_product_page_localizations`
+List all versions of a custom product page and their per-locale localizations (promotional text, state).
+
+**Parameters:**
+- `appCustomProductPageId` (required): The ID of the custom product page
+- `versionLimit` (optional): Max versions to return (default: 100)
+- `localizationLimit` (optional): Max localizations per version (default: 200)
+
+**Example:**
+```
+"List localizations for custom product page a134f13f-adcb-45d1-be22-fdf2692afb41"
+```
+
+#### `create_app_custom_product_page`
+Create a new custom product page for an app. Returns the new page id (ppid).
+
+**Parameters:**
+- `appId` (required): The app ID the page belongs to
+- `name` (required): Internal page name (e.g. `cpp-<intent>-<locale>-vN`)
+
+#### `create_app_custom_product_page_version`
+Create a new version for an existing custom product page. Localizations attach to a version.
+
+**Parameters:**
+- `appCustomProductPageId` (required): The ID of the custom product page
+
+#### `create_app_custom_product_page_localization`
+Create a locale-specific localization on a custom product page version.
+
+**Parameters:**
+- `appCustomProductPageVersionId` (required): The ID of the version
+- `locale` (required): Locale code (e.g. en-US, en-GB)
+- `promotionalText` (optional): Promotional text for this locale
+
+#### `update_app_custom_product_page_localization`
+Update the promotional text of a custom product page localization.
+
+**Parameters:**
+- `localizationId` (required): The ID of the localization
+- `promotionalText` (required): The new promotional text
+
+> **Screenshots / previews:** uploading screenshot sets to CPP localizations is
+> not yet supported — it needs the asset reservation/upload/commit flow, which
+> this server does not implement for any resource. Manage CPP creative assets in
+> the App Store Connect UI for now.
+
 ### 🔤 Bundle ID Management Tools
 
 #### `create_bundle_id`

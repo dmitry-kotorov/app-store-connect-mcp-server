@@ -479,6 +479,30 @@ class AppStoreConnectServer {
           }
         },
         {
+          name: "list_app_custom_product_pages",
+          description: "List all custom product pages (CPPs) for an app, each with its human-readable name, App Store URL, and visibility. The page id is the public ppid — the same value Apple Ads returns as productPageId on CUSTOM_PRODUCT_PAGE creatives — so this closes the UUID↔name gap.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              appId: {
+                type: "string",
+                description: "The app ID (e.g. 656212466)"
+              },
+              visible: {
+                type: "boolean",
+                description: "Optional filter: only pages with this visibility (true/false)"
+              },
+              limit: {
+                type: "number",
+                description: "Maximum number of pages to return (default: 100)",
+                minimum: 1,
+                maximum: 200
+              }
+            },
+            required: ["appId"]
+          }
+        },
+        {
           name: "list_app_custom_product_page_localizations",
           description: "List all custom product page versions and their localizations for a specific page",
           inputSchema: {
@@ -502,6 +526,78 @@ class AppStoreConnectServer {
               }
             },
             required: ["appCustomProductPageId"]
+          }
+        },
+        {
+          name: "create_app_custom_product_page",
+          description: "Create a new custom product page (CPP) for an app. Returns the new page with its id (ppid). A version and localizations must be created separately (see create_app_custom_product_page_version).",
+          inputSchema: {
+            type: "object",
+            properties: {
+              appId: {
+                type: "string",
+                description: "The app ID the page belongs to (e.g. 656212466)"
+              },
+              name: {
+                type: "string",
+                description: "Human-readable name for the page (internal, e.g. cpp-<intent>-<locale>-vN)"
+              }
+            },
+            required: ["appId", "name"]
+          }
+        },
+        {
+          name: "create_app_custom_product_page_version",
+          description: "Create a new version for an existing custom product page. Localizations attach to a version.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              appCustomProductPageId: {
+                type: "string",
+                description: "The ID of the custom product page to add a version to"
+              }
+            },
+            required: ["appCustomProductPageId"]
+          }
+        },
+        {
+          name: "create_app_custom_product_page_localization",
+          description: "Create a locale-specific localization on a custom product page version. Only locale and promotionalText are supported for CPPs.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              appCustomProductPageVersionId: {
+                type: "string",
+                description: "The ID of the custom product page version"
+              },
+              locale: {
+                type: "string",
+                description: "Locale code (e.g. en-US, en-GB)"
+              },
+              promotionalText: {
+                type: "string",
+                description: "Optional promotional text for this locale"
+              }
+            },
+            required: ["appCustomProductPageVersionId", "locale"]
+          }
+        },
+        {
+          name: "update_app_custom_product_page_localization",
+          description: "Update the promotional text of a custom product page localization.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              localizationId: {
+                type: "string",
+                description: "The ID of the custom product page localization to update"
+              },
+              promotionalText: {
+                type: "string",
+                description: "The new promotional text"
+              }
+            },
+            required: ["localizationId", "promotionalText"]
           }
         },
 
@@ -1202,8 +1298,23 @@ class AppStoreConnectServer {
           case "update_app_store_version_localization":
             return formatResponse(await this.localizationHandlers.updateAppStoreVersionLocalization(args as any));
 
+          case "list_app_custom_product_pages":
+            return formatResponse(await this.localizationHandlers.listAppCustomProductPages(args as any));
+
           case "list_app_custom_product_page_localizations":
             return formatResponse(await this.localizationHandlers.listAppCustomProductPageLocalizations(args as any));
+
+          case "create_app_custom_product_page":
+            return formatResponse(await this.localizationHandlers.createAppCustomProductPage(args as any));
+
+          case "create_app_custom_product_page_version":
+            return formatResponse(await this.localizationHandlers.createAppCustomProductPageVersion(args as any));
+
+          case "create_app_custom_product_page_localization":
+            return formatResponse(await this.localizationHandlers.createAppCustomProductPageLocalization(args as any));
+
+          case "update_app_custom_product_page_localization":
+            return formatResponse(await this.localizationHandlers.updateAppCustomProductPageLocalization(args as any));
 
           // App Info Localizations
           case "list_app_infos":

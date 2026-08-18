@@ -280,19 +280,63 @@ export interface ListAppInfosResponse {
   };
 }
 
+// Custom Product Page Types
+
+export interface AppCustomProductPage {
+  id: string;
+  type: 'appCustomProductPages';
+  attributes: {
+    name?: string;
+    url?: string;
+    visible?: boolean;
+  };
+  relationships?: {
+    app?: {
+      data?: {
+        type: 'apps';
+        id: string;
+      };
+    };
+    appCustomProductPageVersions?: {
+      data?: Array<{
+        type: 'appCustomProductPageVersions';
+        id: string;
+      }>;
+    };
+  };
+}
+
+export interface ListAppCustomProductPagesResponse {
+  data: AppCustomProductPage[];
+  links?: {
+    self: string;
+    next?: string;
+  };
+  meta?: {
+    paging: {
+      total: number;
+      limit: number;
+    };
+  };
+}
+
+export interface AppCustomProductPageResponse {
+  data: AppCustomProductPage;
+  links?: {
+    self: string;
+  };
+}
+
 // Custom Product Page Localization Types
 
 export interface AppCustomProductPageLocalization {
   id: string;
   type: 'appCustomProductPageLocalizations';
   attributes: {
-    locale: string;
-    header?: string;
-    subheading?: string;
-    body?: string;
-    footer?: string;
+    // Per the App Store Connect API (v3.2), CPP localizations expose only
+    // locale and promotionalText — not the full store-listing field set.
+    locale?: string;
     promotionalText?: string;
-    marketingUrl?: string;
   };
   relationships?: {
     appCustomProductPageVersion?: {
@@ -301,6 +345,13 @@ export interface AppCustomProductPageLocalization {
         id: string;
       };
     };
+  };
+}
+
+export interface AppCustomProductPageLocalizationResponse {
+  data: AppCustomProductPageLocalization;
+  links?: {
+    self: string;
   };
 }
 
@@ -322,10 +373,10 @@ export interface AppCustomProductPageVersion {
   id: string;
   type: 'appCustomProductPageVersions';
   attributes: {
+    // Per the App Store Connect API (v3.2): version + state
+    // (e.g. ACCEPTED, PREPARE_FOR_SUBMISSION).
+    version?: string;
     state?: string;
-    platform?: string;
-    createdDate?: string;
-    lastModifiedDate?: string;
   };
   relationships?: {
     appCustomProductPage?: {
@@ -357,6 +408,13 @@ export interface ListAppCustomProductPageVersionsResponse {
   };
 }
 
+export interface AppCustomProductPageVersionResponse {
+  data: AppCustomProductPageVersion;
+  links?: {
+    self: string;
+  };
+}
+
 export interface AppCustomProductPageLocalizationsByPageResponse {
   appCustomProductPageId: string;
   versions: Array<{
@@ -367,4 +425,65 @@ export interface AppCustomProductPageLocalizationsByPageResponse {
   }>;
   links?: ListAppCustomProductPageVersionsResponse['links'];
   meta?: ListAppCustomProductPageVersionsResponse['meta'];
+}
+
+// Custom Product Page Write Request Types
+
+export interface AppCustomProductPageCreateRequest {
+  data: {
+    type: 'appCustomProductPages';
+    attributes: {
+      name: string;
+    };
+    relationships: {
+      app: {
+        data: {
+          type: 'apps';
+          id: string;
+        };
+      };
+    };
+  };
+}
+
+export interface AppCustomProductPageVersionCreateRequest {
+  data: {
+    type: 'appCustomProductPageVersions';
+    relationships: {
+      appCustomProductPage: {
+        data: {
+          type: 'appCustomProductPages';
+          id: string;
+        };
+      };
+    };
+  };
+}
+
+export interface AppCustomProductPageLocalizationCreateRequest {
+  data: {
+    type: 'appCustomProductPageLocalizations';
+    attributes: {
+      locale: string;
+      promotionalText?: string;
+    };
+    relationships: {
+      appCustomProductPageVersion: {
+        data: {
+          type: 'appCustomProductPageVersions';
+          id: string;
+        };
+      };
+    };
+  };
+}
+
+export interface AppCustomProductPageLocalizationUpdateRequest {
+  data: {
+    type: 'appCustomProductPageLocalizations';
+    id: string;
+    attributes: {
+      promotionalText?: string;
+    };
+  };
 }
