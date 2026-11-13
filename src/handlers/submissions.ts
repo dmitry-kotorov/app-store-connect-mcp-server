@@ -12,7 +12,7 @@ import {
   ListReviewSubmissionItemsResponse,
   ReviewSubmissionItemResponse,
 } from '../types/index.js';
-import { validateRequired, validateEnum, sanitizeLimit } from '../utils/index.js';
+import { validateRequired, validateEnum, sanitizeLimit, pathId } from '../utils/index.js';
 
 /**
  * Unified App Review submission flow (reviewSubmissions + reviewSubmissionItems).
@@ -50,7 +50,7 @@ export class SubmissionHandlers {
       params['limit[items]'] = 50;
     }
 
-    return this.client.get<ListReviewSubmissionsResponse>(`/apps/${appId}/reviewSubmissions`, params);
+    return this.client.get<ListReviewSubmissionsResponse>(`/apps/${pathId(appId, 'appId')}/reviewSubmissions`, params);
   }
 
   async listReviewSubmissionItems(args: {
@@ -62,7 +62,7 @@ export class SubmissionHandlers {
 
     // Include every item kind so each item's linked resource id/type is visible.
     return this.client.get<ListReviewSubmissionItemsResponse>(
-      `/reviewSubmissions/${reviewSubmissionId}/items`,
+      `/reviewSubmissions/${pathId(reviewSubmissionId, 'reviewSubmissionId')}/items`,
       {
         limit: sanitizeLimit(limit, 200),
         include: Object.keys(REVIEW_ITEM_TYPES).join(','),
@@ -117,7 +117,7 @@ export class SubmissionHandlers {
 
   async removeReviewSubmissionItem(args: { reviewSubmissionItemId: string }): Promise<{ success: true; reviewSubmissionItemId: string }> {
     validateRequired(args, ['reviewSubmissionItemId']);
-    await this.client.delete(`/reviewSubmissionItems/${args.reviewSubmissionItemId}`);
+    await this.client.delete(`/reviewSubmissionItems/${pathId(args.reviewSubmissionItemId, 'reviewSubmissionItemId')}`);
     return { success: true, reviewSubmissionItemId: args.reviewSubmissionItemId };
   }
 
@@ -132,7 +132,7 @@ export class SubmissionHandlers {
   }
 
   private patchSubmission(id: string, attributes: Record<string, boolean>): Promise<ReviewSubmissionResponse> {
-    return this.client.patch<ReviewSubmissionResponse>(`/reviewSubmissions/${id}`, {
+    return this.client.patch<ReviewSubmissionResponse>(`/reviewSubmissions/${pathId(id, 'id')}`, {
       data: { type: 'reviewSubmissions', id, attributes },
     });
   }

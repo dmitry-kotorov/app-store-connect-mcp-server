@@ -41,3 +41,16 @@ export function buildFieldParams(fields = {}) {
     });
     return params;
 }
+/**
+ * Encode a resource id for use as a single URL path segment. Ids come from tool
+ * arguments, so a raw "../" could redirect an authenticated request to another
+ * endpoint; encodeURIComponent neutralises "/", "?" and "#", and the dot-only
+ * segments that encoding leaves intact are rejected.
+ */
+export function pathId(value, fieldName = 'id') {
+    const id = String(value ?? '').trim();
+    if (!id || id === '.' || id === '..') {
+        throw new McpError(ErrorCode.InvalidParams, `Invalid ${fieldName}: ${value}`);
+    }
+    return encodeURIComponent(id);
+}

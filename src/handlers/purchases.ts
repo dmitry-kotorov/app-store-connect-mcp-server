@@ -11,7 +11,7 @@ import {
   ListPurchaseVersionsResponse,
   PurchaseVersionResponse,
 } from '../types/index.js';
-import { validateRequired, validateEnum, sanitizeLimit } from '../utils/index.js';
+import { validateRequired, validateEnum, sanitizeLimit, pathId } from '../utils/index.js';
 
 /**
  * In-App Purchases & subscriptions, built on the version-based resources Apple
@@ -46,7 +46,7 @@ export class PurchaseHandlers {
       params['limit[versions]'] = 50;
     }
 
-    return this.client.get<ListInAppPurchasesResponse>(`/apps/${appId}/inAppPurchasesV2`, params);
+    return this.client.get<ListInAppPurchasesResponse>(`/apps/${pathId(appId, 'appId')}/inAppPurchasesV2`, params);
   }
 
   async listSubscriptionGroups(args: {
@@ -70,7 +70,7 @@ export class PurchaseHandlers {
     }
     if (include.length) params['include'] = include.join(',');
 
-    return this.client.get<ListSubscriptionGroupsResponse>(`/apps/${appId}/subscriptionGroups`, params);
+    return this.client.get<ListSubscriptionGroupsResponse>(`/apps/${pathId(appId, 'appId')}/subscriptionGroups`, params);
   }
 
   async listSubscriptions(args: {
@@ -92,7 +92,7 @@ export class PurchaseHandlers {
     }
 
     return this.client.get<ListSubscriptionsResponse>(
-      `/subscriptionGroups/${subscriptionGroupId}/subscriptions`,
+      `/subscriptionGroups/${pathId(subscriptionGroupId, 'subscriptionGroupId')}/subscriptions`,
       params,
     );
   }
@@ -105,7 +105,7 @@ export class PurchaseHandlers {
   }): Promise<ListPurchaseVersionsResponse> {
     validateRequired(args, ['inAppPurchaseId']);
     return this.client.get<ListPurchaseVersionsResponse>(
-      `${ASC_V2_BASE}/inAppPurchases/${args.inAppPurchaseId}/versions`,
+      `${ASC_V2_BASE}/inAppPurchases/${pathId(args.inAppPurchaseId, 'inAppPurchaseId')}/versions`,
       this.versionListParams(args),
     );
   }
@@ -118,7 +118,7 @@ export class PurchaseHandlers {
   }): Promise<ListPurchaseVersionsResponse> {
     validateRequired(args, ['subscriptionId']);
     return this.client.get<ListPurchaseVersionsResponse>(
-      `/subscriptions/${args.subscriptionId}/versions`,
+      `/subscriptions/${pathId(args.subscriptionId, 'subscriptionId')}/versions`,
       this.versionListParams(args),
     );
   }
@@ -131,7 +131,7 @@ export class PurchaseHandlers {
   }): Promise<ListPurchaseVersionsResponse> {
     validateRequired(args, ['subscriptionGroupId']);
     return this.client.get<ListPurchaseVersionsResponse>(
-      `/subscriptionGroups/${args.subscriptionGroupId}/versions`,
+      `/subscriptionGroups/${pathId(args.subscriptionGroupId, 'subscriptionGroupId')}/versions`,
       this.versionListParams(args),
     );
   }
