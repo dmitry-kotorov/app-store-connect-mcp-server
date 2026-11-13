@@ -56,6 +56,15 @@ This server transforms complex App Store Connect operations into simple conversa
   - Manage marketing and support URLs
   - Update "What's New" text for releases
 
+- **In-App Purchases & Subscriptions** ✨ **NEW**
+  - List IAPs (v2), subscription groups and subscriptions
+  - List and create IAP / subscription / subscription group versions (the new version-based resources)
+  - Built only on the non-deprecated endpoints (Apple removes the old v1 IAP/subscription localization, image and submission resources from early 2027)
+
+- **App Review Submissions** ✨ **NEW**
+  - Unified review submission flow: group an app version, IAP/subscription versions, custom product pages, in-app events and more (up to 200 items) into one submission
+  - Create a draft, add/remove items, submit, cancel
+
 - **Bundle ID Management**
   - List bundle IDs
   - Create new bundle IDs
@@ -473,6 +482,87 @@ Update the promotional text of a custom product page localization.
 > not yet supported — it needs the asset reservation/upload/commit flow, which
 > this server does not implement for any resource. Manage CPP creative assets in
 > the App Store Connect UI for now.
+
+### 💳 In-App Purchase & Subscription Tools
+
+Uses the version-based resources added to the App Store Connect API in July 2026
+(`InAppPurchaseVersion`, `SubscriptionVersion`, `SubscriptionGroupVersion`).
+Localizations and images hang off a **version**, and the **version id** is what
+you add to a review submission. The deprecated v1 IAP/subscription
+localization, image and `*Submissions` resources are not used.
+
+#### `list_in_app_purchases`
+List an app's IAPs (consumable, non-consumable, non-renewing) with their versions.
+
+**Parameters:**
+- `appId` (required)
+- `state`, `inAppPurchaseType`, `productId` (optional arrays): filters
+- `includeVersions` (optional, default true)
+- `limit` (optional, default 100)
+
+#### `list_subscription_groups`
+List subscription groups with their subscriptions and group versions.
+
+**Parameters:** `appId` (required), `includeSubscriptions`, `includeVersions` (default true), `limit`
+
+#### `list_subscriptions`
+List subscriptions in a group, with their versions.
+
+**Parameters:** `subscriptionGroupId` (required), `state`, `productId`, `includeVersions` (default true), `limit`
+
+#### `list_in_app_purchase_versions` / `list_subscription_versions` / `list_subscription_group_versions`
+List versions of an IAP / subscription / subscription group.
+
+**Parameters:** `inAppPurchaseId` / `subscriptionId` / `subscriptionGroupId` (required), `state` (optional), `includeLocalizations` (default false), `limit`
+
+#### `create_in_app_purchase_version` / `create_subscription_version` / `create_subscription_group_version`
+Create a new editable version (e.g. to change metadata of an already-approved product).
+Reuse an existing `PREPARE_FOR_SUBMISSION` version if one exists.
+
+**Parameters:** `inAppPurchaseId` / `subscriptionId` / `subscriptionGroupId` (required)
+
+### 📨 Review Submission Tools
+
+The unified App Review flow (`reviewSubmissions` + `reviewSubmissionItems`):
+
+1. `list_review_submissions` with `state: ["READY_FOR_REVIEW"]`: reuse an open draft if there is one
+2. otherwise `create_review_submission`
+3. `add_review_submission_item` for each item (max 200)
+4. `list_review_submission_items` to review the contents
+5. `submit_review_submission`: **sends everything to App Review**
+
+#### `list_review_submissions`
+**Parameters:** `appId` (required), `state` (optional array), `platform` (optional), `includeItems` (default true), `limit` (default 50)
+
+#### `list_review_submission_items`
+**Parameters:** `reviewSubmissionId` (required), `limit` (default 200)
+
+#### `create_review_submission`
+Create a draft submission (nothing is sent to Apple yet).
+
+**Parameters:** `appId` (required), `platform` (required: `IOS`, `MAC_OS`, `TV_OS`, `VISION_OS`)
+
+#### `add_review_submission_item`
+**Parameters:**
+- `reviewSubmissionId` (required)
+- `itemKind` (required): e.g. `inAppPurchaseVersion`, `subscriptionVersion`, `subscriptionGroupVersion`, `appStoreVersion`, `appCustomProductPageVersion`, `appEvent`, Game Center versions, …
+- `itemId` (required): id of that resource (an IAP **version** id, not the IAP id)
+
+#### `remove_review_submission_item`
+**Parameters:** `reviewSubmissionItemId` (required)
+
+#### `submit_review_submission`
+Submit to App Review. Cannot be undone (only canceled).
+
+**Parameters:** `reviewSubmissionId` (required)
+
+#### `cancel_review_submission`
+**Parameters:** `reviewSubmissionId` (required)
+
+**Example:**
+```
+"Submit the new subscription version and version 5.2 of app 656212466 for review together"
+```
 
 ### 🔤 Bundle ID Management Tools
 

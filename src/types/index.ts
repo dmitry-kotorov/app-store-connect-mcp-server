@@ -27,3 +27,9 @@ export * from './localizations.js';
 
 // Customer review types
 export * from './reviews.js';
+
+// In-App Purchase & subscription types
+export * from './purchases.js';
+
+// Review submission types
+export * from './submissions.js';
