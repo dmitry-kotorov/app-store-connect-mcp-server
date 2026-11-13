@@ -1,4 +1,4 @@
-import { validateRequired, sanitizeLimit } from '../utils/index.js';
+import { validateRequired, sanitizeLimit, pathId } from '../utils/index.js';
 import { AppHandlers } from './apps.js';
 export class BetaHandlers {
     client;
@@ -17,7 +17,7 @@ export class BetaHandlers {
     async listGroupTesters(args) {
         const { groupId, limit = 100 } = args;
         validateRequired(args, ['groupId']);
-        return this.client.get(`/betaGroups/${groupId}/betaTesters`, {
+        return this.client.get(`/betaGroups/${pathId(groupId, 'groupId')}/betaTesters`, {
             limit: sanitizeLimit(limit)
         });
     }
@@ -53,7 +53,7 @@ export class BetaHandlers {
                     type: "betaTesters"
                 }]
         };
-        await this.client.delete(`/betaGroups/${groupId}/relationships/betaTesters`, requestBody);
+        await this.client.delete(`/betaGroups/${pathId(groupId, 'groupId')}/relationships/betaTesters`, requestBody);
         return {
             success: true,
             message: "Tester removed from group successfully"
@@ -109,7 +109,7 @@ export class BetaHandlers {
         }
         // Add field selections for better performance
         params['fields[betaFeedbackScreenshotSubmissions]'] = 'createdDate,comment,email,deviceModel,osVersion,locale,timeZone,architecture,connectionType,pairedAppleWatch,appUptimeInMilliseconds,diskBytesAvailable,diskBytesTotal,batteryPercentage,screenWidthInPoints,screenHeightInPoints,appPlatform,devicePlatform,deviceFamily,buildBundleId,screenshots,build,tester';
-        return this.client.get(`/apps/${finalAppId}/betaFeedbackScreenshotSubmissions`, params);
+        return this.client.get(`/apps/${pathId(finalAppId, 'finalAppId')}/betaFeedbackScreenshotSubmissions`, params);
     }
     async getBetaFeedbackScreenshot(args) {
         const { feedbackId, includeBuilds = false, includeTesters = false, downloadScreenshot = true } = args;
@@ -128,7 +128,7 @@ export class BetaHandlers {
         }
         // Add field selections
         params['fields[betaFeedbackScreenshotSubmissions]'] = 'createdDate,comment,email,deviceModel,osVersion,locale,timeZone,architecture,connectionType,pairedAppleWatch,appUptimeInMilliseconds,diskBytesAvailable,diskBytesTotal,batteryPercentage,screenWidthInPoints,screenHeightInPoints,appPlatform,devicePlatform,deviceFamily,buildBundleId,screenshots,build,tester';
-        const response = await this.client.get(`/betaFeedbackScreenshotSubmissions/${feedbackId}`, params);
+        const response = await this.client.get(`/betaFeedbackScreenshotSubmissions/${pathId(feedbackId, 'feedbackId')}`, params);
         // If downloadScreenshot is true, download and include the screenshot as base64
         const screenshots = response.data.attributes?.screenshots;
         if (downloadScreenshot && screenshots && screenshots.length > 0) {

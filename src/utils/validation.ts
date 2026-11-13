@@ -67,7 +67,7 @@ export function buildFieldParams(fields: Record<string, string[]> = {}): Record<
  * endpoint; encodeURIComponent neutralises "/", "?" and "#", and the dot-only
  * segments that encoding leaves intact are rejected.
  */
-export function pathId(value: string, fieldName = 'id'): string {
+export function pathId(value: string | undefined, fieldName = 'id'): string {
   const id = String(value ?? '').trim();
   if (!id || id === '.' || id === '..') {
     throw new McpError(ErrorCode.InvalidParams, `Invalid ${fieldName}: ${value}`);

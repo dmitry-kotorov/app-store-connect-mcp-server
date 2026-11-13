@@ -3,7 +3,7 @@ import {
   ListCustomerReviewsRequest,
   ListCustomerReviewsResult,
 } from '../types/index.js';
-import { sanitizeLimit } from '../utils/index.js';
+import { sanitizeLimit, pathId } from '../utils/index.js';
 import { AppHandlers } from './apps.js';
 
 export class ReviewHandlers {
@@ -74,7 +74,7 @@ export class ReviewHandlers {
       if (cursor) params['cursor'] = cursor;
 
       const resp = await this.client.get<any>(
-        `/apps/${finalAppId}/customerReviews`,
+        `/apps/${pathId(finalAppId, 'finalAppId')}/customerReviews`,
         params,
       );
 

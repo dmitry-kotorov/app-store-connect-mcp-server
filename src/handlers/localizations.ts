@@ -26,7 +26,7 @@ import {
   AppInfoLocalizationField,
   AppInfoLocalization
 } from '../types/index.js';
-import { validateRequired, sanitizeLimit, buildFilterParams, buildFieldParams } from '../utils/index.js';
+import { validateRequired, sanitizeLimit, buildFilterParams, buildFieldParams, pathId } from '../utils/index.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 
 export class LocalizationHandlers {
@@ -62,7 +62,7 @@ export class LocalizationHandlers {
     }
     
     return this.client.get<ListAppStoreVersionsResponse>(
-      `/apps/${appId}/appStoreVersions`,
+      `/apps/${pathId(appId, 'appId')}/appStoreVersions`,
       params
     );
   }
@@ -99,7 +99,7 @@ export class LocalizationHandlers {
     Object.assign(params, buildFieldParams(fields));
 
     const response = await this.client.get<ListAppStoreVersionLocalizationsResponse>(
-      `/appStoreVersions/${appStoreVersionId}/appStoreVersionLocalizations`,
+      `/appStoreVersions/${pathId(appStoreVersionId, 'appStoreVersionId')}/appStoreVersionLocalizations`,
       params
     );
 
@@ -165,7 +165,7 @@ export class LocalizationHandlers {
     validateRequired(args, ['localizationId']);
     
     return this.client.get<AppStoreVersionLocalizationResponse>(
-      `/appStoreVersionLocalizations/${localizationId}`
+      `/appStoreVersionLocalizations/${pathId(localizationId, 'localizationId')}`
     );
   }
 
@@ -199,7 +199,7 @@ export class LocalizationHandlers {
     };
     
     return this.client.patch<AppStoreVersionLocalizationResponse>(
-      `/appStoreVersionLocalizations/${localizationId}`,
+      `/appStoreVersionLocalizations/${pathId(localizationId, 'localizationId')}`,
       requestData
     );
   }
@@ -292,7 +292,7 @@ export class LocalizationHandlers {
     };
 
     return this.client.get<ListAppInfosResponse>(
-      `/apps/${appId}/appInfos`,
+      `/apps/${pathId(appId, 'appId')}/appInfos`,
       params
     );
   }
@@ -328,7 +328,7 @@ export class LocalizationHandlers {
     Object.assign(params, buildFieldParams(fields));
 
     const response = await this.client.get<ListAppInfoLocalizationsResponse>(
-      `/appInfos/${appInfoId}/appInfoLocalizations`,
+      `/appInfos/${pathId(appInfoId, 'appInfoId')}/appInfoLocalizations`,
       params
     );
 
@@ -393,7 +393,7 @@ export class LocalizationHandlers {
     validateRequired(args, ['localizationId']);
 
     return this.client.get<AppInfoLocalizationResponse>(
-      `/appInfoLocalizations/${localizationId}`
+      `/appInfoLocalizations/${pathId(localizationId, 'localizationId')}`
     );
   }
 
@@ -426,7 +426,7 @@ export class LocalizationHandlers {
     };
 
     return this.client.patch<AppInfoLocalizationResponse>(
-      `/appInfoLocalizations/${localizationId}`,
+      `/appInfoLocalizations/${pathId(localizationId, 'localizationId')}`,
       requestData
     );
   }
@@ -451,7 +451,7 @@ export class LocalizationHandlers {
     }
 
     return this.client.get<ListAppCustomProductPagesResponse>(
-      `/apps/${appId}/appCustomProductPages`,
+      `/apps/${pathId(appId, 'appId')}/appCustomProductPages`,
       params
     );
   }
@@ -471,7 +471,7 @@ export class LocalizationHandlers {
     };
 
     return this.client.get<ListAppCustomProductPageVersionsResponse>(
-      `/appCustomProductPages/${appCustomProductPageId}/appCustomProductPageVersions`,
+      `/appCustomProductPages/${pathId(appCustomProductPageId, 'appCustomProductPageId')}/appCustomProductPageVersions`,
       params
     );
   }
@@ -491,7 +491,7 @@ export class LocalizationHandlers {
     };
 
     return this.client.get<ListAppCustomProductPageLocalizationsResponse>(
-      `/appCustomProductPageVersions/${appCustomProductPageVersionId}/appCustomProductPageLocalizations`,
+      `/appCustomProductPageVersions/${pathId(appCustomProductPageVersionId, 'appCustomProductPageVersionId')}/appCustomProductPageLocalizations`,
       params
     );
   }
@@ -641,7 +641,7 @@ export class LocalizationHandlers {
     };
 
     return this.client.patch<AppCustomProductPageLocalizationResponse>(
-      `/appCustomProductPageLocalizations/${localizationId}`,
+      `/appCustomProductPageLocalizations/${pathId(localizationId, 'localizationId')}`,
       requestData
     );
   }

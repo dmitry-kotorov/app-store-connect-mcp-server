@@ -1,4 +1,4 @@
-import { validateRequired, sanitizeLimit, buildFilterParams } from '../utils/index.js';
+import { validateRequired, sanitizeLimit, buildFilterParams, pathId } from '../utils/index.js';
 export class AnalyticsHandlers {
     client;
     config;
@@ -34,12 +34,12 @@ export class AnalyticsHandlers {
             limit: sanitizeLimit(limit)
         };
         Object.assign(params, buildFilterParams(filter));
-        return this.client.get(`/analyticsReportRequests/${reportRequestId}/reports`, params);
+        return this.client.get(`/analyticsReportRequests/${pathId(reportRequestId, 'reportRequestId')}/reports`, params);
     }
     async listAnalyticsReportSegments(args) {
         const { reportId, limit = 100 } = args;
         validateRequired(args, ['reportId']);
-        return this.client.get(`/analyticsReports/${reportId}/segments`, {
+        return this.client.get(`/analyticsReports/${pathId(reportId, 'reportId')}/segments`, {
             limit: sanitizeLimit(limit)
         });
     }

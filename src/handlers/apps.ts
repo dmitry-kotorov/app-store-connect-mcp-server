@@ -1,6 +1,6 @@
 import { AppStoreConnectClient } from '../services/index.js';
 import { ListAppsResponse, AppInfoResponse, AppIncludeOptions } from '../types/index.js';
-import { validateRequired, sanitizeLimit } from '../utils/index.js';
+import { validateRequired, sanitizeLimit, pathId } from '../utils/index.js';
 
 export class AppHandlers {
   constructor(private client: AppStoreConnectClient) {}
@@ -35,7 +35,7 @@ export class AppHandlers {
       params.include = include.join(',');
     }
 
-    return this.client.get<AppInfoResponse>(`/apps/${appId}`, params);
+    return this.client.get<AppInfoResponse>(`/apps/${pathId(appId, 'appId')}`, params);
   }
 
   async findAppByBundleId(bundleId: string): Promise<{ id: string; attributes: { bundleId: string; name: string; sku: string; primaryLocale: string } } | null> {

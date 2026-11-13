@@ -14,7 +14,7 @@ import {
   SalesReportFilters,
   FinanceReportFilters
 } from '../types/index.js';
-import { validateRequired, sanitizeLimit, buildFilterParams } from '../utils/index.js';
+import { validateRequired, sanitizeLimit, buildFilterParams, pathId } from '../utils/index.js';
 
 export class AnalyticsHandlers {
   constructor(private client: AppStoreConnectClient, private config?: { vendorNumber?: string }) {}
@@ -64,7 +64,7 @@ export class AnalyticsHandlers {
 
     Object.assign(params, buildFilterParams(filter));
 
-    return this.client.get<ListAnalyticsReportsResponse>(`/analyticsReportRequests/${reportRequestId}/reports`, params);
+    return this.client.get<ListAnalyticsReportsResponse>(`/analyticsReportRequests/${pathId(reportRequestId, 'reportRequestId')}/reports`, params);
   }
 
   async listAnalyticsReportSegments(args: {
@@ -75,7 +75,7 @@ export class AnalyticsHandlers {
     
     validateRequired(args, ['reportId']);
 
-    return this.client.get<ListAnalyticsReportSegmentsResponse>(`/analyticsReports/${reportId}/segments`, {
+    return this.client.get<ListAnalyticsReportSegmentsResponse>(`/analyticsReports/${pathId(reportId, 'reportId')}/segments`, {
       limit: sanitizeLimit(limit)
     });
   }

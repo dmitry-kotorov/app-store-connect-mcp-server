@@ -8,7 +8,7 @@ import {
   ListBetaFeedbackScreenshotSubmissionsResponse,
   BetaFeedbackScreenshotSubmissionResponse
 } from '../types/index.js';
-import { validateRequired, sanitizeLimit } from '../utils/index.js';
+import { validateRequired, sanitizeLimit, pathId } from '../utils/index.js';
 import { AppHandlers } from './apps.js';
 
 export class BetaHandlers {
@@ -35,7 +35,7 @@ export class BetaHandlers {
     
     validateRequired(args, ['groupId']);
 
-    return this.client.get<ListBetaTestersResponse>(`/betaGroups/${groupId}/betaTesters`, {
+    return this.client.get<ListBetaTestersResponse>(`/betaGroups/${pathId(groupId, 'groupId')}/betaTesters`, {
       limit: sanitizeLimit(limit)
     });
   }
@@ -87,7 +87,7 @@ export class BetaHandlers {
       }]
     };
 
-    await this.client.delete(`/betaGroups/${groupId}/relationships/betaTesters`, requestBody);
+    await this.client.delete(`/betaGroups/${pathId(groupId, 'groupId')}/relationships/betaTesters`, requestBody);
 
     return { 
       success: true, 
@@ -164,7 +164,7 @@ export class BetaHandlers {
     params['fields[betaFeedbackScreenshotSubmissions]'] = 'createdDate,comment,email,deviceModel,osVersion,locale,timeZone,architecture,connectionType,pairedAppleWatch,appUptimeInMilliseconds,diskBytesAvailable,diskBytesTotal,batteryPercentage,screenWidthInPoints,screenHeightInPoints,appPlatform,devicePlatform,deviceFamily,buildBundleId,screenshots,build,tester';
 
     return this.client.get<ListBetaFeedbackScreenshotSubmissionsResponse>(
-      `/apps/${finalAppId}/betaFeedbackScreenshotSubmissions`, 
+      `/apps/${pathId(finalAppId, 'finalAppId')}/betaFeedbackScreenshotSubmissions`, 
       params
     );
   }
@@ -195,7 +195,7 @@ export class BetaHandlers {
     params['fields[betaFeedbackScreenshotSubmissions]'] = 'createdDate,comment,email,deviceModel,osVersion,locale,timeZone,architecture,connectionType,pairedAppleWatch,appUptimeInMilliseconds,diskBytesAvailable,diskBytesTotal,batteryPercentage,screenWidthInPoints,screenHeightInPoints,appPlatform,devicePlatform,deviceFamily,buildBundleId,screenshots,build,tester';
 
     const response = await this.client.get<BetaFeedbackScreenshotSubmissionResponse>(
-      `/betaFeedbackScreenshotSubmissions/${feedbackId}`, 
+      `/betaFeedbackScreenshotSubmissions/${pathId(feedbackId, 'feedbackId')}`, 
       params
     );
 

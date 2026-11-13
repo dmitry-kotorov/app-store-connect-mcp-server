@@ -1,4 +1,4 @@
-import { validateRequired, sanitizeLimit, buildFilterParams, buildFieldParams } from '../utils/index.js';
+import { validateRequired, sanitizeLimit, buildFilterParams, buildFieldParams, pathId } from '../utils/index.js';
 export class BundleHandlers {
     client;
     constructor(client) {
@@ -42,7 +42,7 @@ export class BundleHandlers {
         if (include?.length) {
             params.include = include.join(',');
         }
-        return this.client.get(`/bundleIds/${bundleIdId}`, params);
+        return this.client.get(`/bundleIds/${pathId(bundleIdId, 'bundleIdId')}`, params);
     }
     async enableBundleCapability(args) {
         const { bundleIdId, capabilityType, settings } = args;
@@ -69,7 +69,7 @@ export class BundleHandlers {
     async disableBundleCapability(args) {
         const { capabilityId } = args;
         validateRequired(args, ['capabilityId']);
-        await this.client.delete(`/bundleIdCapabilities/${capabilityId}`);
+        await this.client.delete(`/bundleIdCapabilities/${pathId(capabilityId, 'capabilityId')}`);
         return {
             success: true,
             message: "Capability disabled successfully"

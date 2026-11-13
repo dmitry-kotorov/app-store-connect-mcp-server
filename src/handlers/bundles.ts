@@ -8,7 +8,7 @@ import {
   CapabilityType,
   CapabilitySetting
 } from '../types/index.js';
-import { validateRequired, sanitizeLimit, buildFilterParams, buildFieldParams } from '../utils/index.js';
+import { validateRequired, sanitizeLimit, buildFilterParams, buildFieldParams, pathId } from '../utils/index.js';
 
 export class BundleHandlers {
   constructor(private client: AppStoreConnectClient) {}
@@ -87,7 +87,7 @@ export class BundleHandlers {
       params.include = include.join(',');
     }
 
-    return this.client.get<BundleIdResponse>(`/bundleIds/${bundleIdId}`, params);
+    return this.client.get<BundleIdResponse>(`/bundleIds/${pathId(bundleIdId, 'bundleIdId')}`, params);
   }
 
   async enableBundleCapability(args: {
@@ -127,7 +127,7 @@ export class BundleHandlers {
     
     validateRequired(args, ['capabilityId']);
 
-    await this.client.delete(`/bundleIdCapabilities/${capabilityId}`);
+    await this.client.delete(`/bundleIdCapabilities/${pathId(capabilityId, 'capabilityId')}`);
 
     return { 
       success: true, 

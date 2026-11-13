@@ -1,4 +1,4 @@
-import { validateRequired, sanitizeLimit } from '../utils/index.js';
+import { validateRequired, sanitizeLimit, pathId } from '../utils/index.js';
 export class AppHandlers {
     client;
     constructor(client) {
@@ -21,7 +21,7 @@ export class AppHandlers {
         if (include?.length) {
             params.include = include.join(',');
         }
-        return this.client.get(`/apps/${appId}`, params);
+        return this.client.get(`/apps/${pathId(appId, 'appId')}`, params);
     }
     async findAppByBundleId(bundleId) {
         const response = await this.listApps({ bundleId, limit: 1 });
