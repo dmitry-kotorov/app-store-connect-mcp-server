@@ -1,5 +1,11 @@
 import axios from 'axios';
 import { AuthService } from './auth.js';
+/**
+ * Absolute base for v2 resources (e.g. /v2/inAppPurchases). The axios baseURL is
+ * pinned to /v1, so a relative "/v2/..." would resolve to "/v1/v2/..."; axios
+ * ignores baseURL for absolute URLs, so v2 calls must use this prefix.
+ */
+export const ASC_V2_BASE = 'https://api.appstoreconnect.apple.com/v2';
 export class AppStoreConnectClient {
     axiosInstance;
     authService;

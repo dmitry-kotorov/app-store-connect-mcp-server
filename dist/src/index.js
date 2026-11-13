@@ -4,7 +4,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { ListToolsRequestSchema, CallToolRequestSchema, ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import axios from 'axios';
 import { AppStoreConnectClient } from './services/index.js';
-import { AppHandlers, BetaHandlers, BundleHandlers, DeviceHandlers, UserHandlers, AnalyticsHandlers, XcodeHandlers, LocalizationHandlers, ReviewHandlers } from './handlers/index.js';
+import { AppHandlers, BetaHandlers, BundleHandlers, DeviceHandlers, UserHandlers, AnalyticsHandlers, XcodeHandlers, LocalizationHandlers, ReviewHandlers, PurchaseHandlers, SubmissionHandlers } from './handlers/index.js';
 // Load environment variables
 const config = {
     keyId: process.env.APP_STORE_CONNECT_KEY_ID,
@@ -24,6 +24,8 @@ class AppStoreConnectServer {
     xcodeHandlers;
     localizationHandlers;
     reviewHandlers;
+    purchaseHandlers;
+    submissionHandlers;
     constructor() {
         this.server = new Server({
             name: "appstore-connect-server",
@@ -43,6 +45,8 @@ class AppStoreConnectServer {
         this.xcodeHandlers = new XcodeHandlers();
         this.localizationHandlers = new LocalizationHandlers(this.client);
         this.reviewHandlers = new ReviewHandlers(this.client);
+        this.purchaseHandlers = new PurchaseHandlers(this.client);
+        this.submissionHandlers = new SubmissionHandlers(this.client);
         this.setupHandlers();
     }
     buildToolsList() {
@@ -1117,6 +1121,233 @@ class AppStoreConnectServer {
                     },
                     required: []
                 }
+            },
+            // In-App Purchase & Subscription Tools (version-based resources, API 4.6)
+            {
+                name: "list_in_app_purchases",
+                description: "List an app's In-App Purchases (consumable, non-consumable, non-renewing subscription) via the v2 resource. By default includes each IAP's versions (InAppPurchaseVersion) — the version id is what you add to a review submission. Auto-renewable subscriptions live under subscription groups (see list_subscription_groups).",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        appId: { type: "string", description: "The app ID (e.g. 656212466)" },
+                        state: {
+                            type: "array",
+                            items: { type: "string", enum: ["MISSING_METADATA", "WAITING_FOR_UPLOAD", "PROCESSING_CONTENT", "READY_TO_SUBMIT", "WAITING_FOR_REVIEW", "IN_REVIEW", "DEVELOPER_ACTION_NEEDED", "PENDING_BINARY_APPROVAL", "APPROVED", "DEVELOPER_REMOVED_FROM_SALE", "REMOVED_FROM_SALE", "REJECTED"] },
+                            description: "Optional filter by IAP state(s)"
+                        },
+                        inAppPurchaseType: {
+                            type: "array",
+                            items: { type: "string", enum: ["CONSUMABLE", "NON_CONSUMABLE", "NON_RENEWING_SUBSCRIPTION"] },
+                            description: "Optional filter by IAP type(s)"
+                        },
+                        productId: { type: "array", items: { type: "string" }, description: "Optional filter by product ID(s)" },
+                        includeVersions: { type: "boolean", description: "Include IAP versions (default: true)", default: true },
+                        limit: { type: "number", description: "Maximum number of IAPs to return (default: 100)", minimum: 1, maximum: 200 }
+                    },
+                    required: ["appId"]
+                }
+            },
+            {
+                name: "list_subscription_groups",
+                description: "List an app's auto-renewable subscription groups. By default includes each group's subscriptions and group versions (SubscriptionGroupVersion).",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        appId: { type: "string", description: "The app ID (e.g. 656212466)" },
+                        includeSubscriptions: { type: "boolean", description: "Include subscriptions in each group (default: true)", default: true },
+                        includeVersions: { type: "boolean", description: "Include subscription group versions (default: true)", default: true },
+                        limit: { type: "number", description: "Maximum number of groups to return (default: 100)", minimum: 1, maximum: 200 }
+                    },
+                    required: ["appId"]
+                }
+            },
+            {
+                name: "list_subscriptions",
+                description: "List the subscriptions in a subscription group. By default includes each subscription's versions (SubscriptionVersion).",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        subscriptionGroupId: { type: "string", description: "The subscription group ID" },
+                        state: {
+                            type: "array",
+                            items: { type: "string", enum: ["MISSING_METADATA", "READY_TO_SUBMIT", "WAITING_FOR_REVIEW", "IN_REVIEW", "DEVELOPER_ACTION_NEEDED", "PENDING_BINARY_APPROVAL", "APPROVED", "DEVELOPER_REMOVED_FROM_SALE", "REMOVED_FROM_SALE", "REJECTED"] },
+                            description: "Optional filter by subscription state(s)"
+                        },
+                        productId: { type: "array", items: { type: "string" }, description: "Optional filter by product ID(s)" },
+                        includeVersions: { type: "boolean", description: "Include subscription versions (default: true)", default: true },
+                        limit: { type: "number", description: "Maximum number of subscriptions to return (default: 100)", minimum: 1, maximum: 200 }
+                    },
+                    required: ["subscriptionGroupId"]
+                }
+            },
+            {
+                name: "list_in_app_purchase_versions",
+                description: "List the versions of an In-App Purchase (GET /v2/inAppPurchases/{id}/versions). Optionally include each version's localizations.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        inAppPurchaseId: { type: "string", description: "The In-App Purchase ID" },
+                        state: { type: "string", enum: ["PREPARE_FOR_SUBMISSION", "READY_FOR_REVIEW", "WAITING_FOR_REVIEW", "IN_REVIEW", "ACCEPTED", "APPROVED", "REPLACED_WITH_NEW_VERSION", "REJECTED", "DEVELOPER_REJECTED"], description: "Optional filter by version state" },
+                        includeLocalizations: { type: "boolean", description: "Include version localizations (default: false)", default: false },
+                        limit: { type: "number", description: "Maximum number of versions to return (default: 100)", minimum: 1, maximum: 200 }
+                    },
+                    required: ["inAppPurchaseId"]
+                }
+            },
+            {
+                name: "list_subscription_versions",
+                description: "List the versions of an auto-renewable subscription. Optionally include each version's localizations.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        subscriptionId: { type: "string", description: "The subscription ID" },
+                        state: { type: "string", enum: ["PREPARE_FOR_SUBMISSION", "READY_FOR_REVIEW", "WAITING_FOR_REVIEW", "IN_REVIEW", "ACCEPTED", "APPROVED", "REPLACED_WITH_NEW_VERSION", "REJECTED", "DEVELOPER_REJECTED"], description: "Optional filter by version state" },
+                        includeLocalizations: { type: "boolean", description: "Include version localizations (default: false)", default: false },
+                        limit: { type: "number", description: "Maximum number of versions to return (default: 100)", minimum: 1, maximum: 200 }
+                    },
+                    required: ["subscriptionId"]
+                }
+            },
+            {
+                name: "list_subscription_group_versions",
+                description: "List the versions of a subscription group. Optionally include each version's localizations (group display name, etc.).",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        subscriptionGroupId: { type: "string", description: "The subscription group ID" },
+                        state: { type: "string", enum: ["PREPARE_FOR_SUBMISSION", "READY_FOR_REVIEW", "WAITING_FOR_REVIEW", "IN_REVIEW", "ACCEPTED", "APPROVED", "REPLACED_WITH_NEW_VERSION", "REJECTED", "DEVELOPER_REJECTED"], description: "Optional filter by version state" },
+                        includeLocalizations: { type: "boolean", description: "Include version localizations (default: false)", default: false },
+                        limit: { type: "number", description: "Maximum number of versions to return (default: 100)", minimum: 1, maximum: 200 }
+                    },
+                    required: ["subscriptionGroupId"]
+                }
+            },
+            {
+                name: "create_in_app_purchase_version",
+                description: "Create a new editable version of an In-App Purchase (needed to change metadata of an already-approved IAP before submitting it for review). Check list_in_app_purchase_versions first — reuse an existing PREPARE_FOR_SUBMISSION version if there is one.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        inAppPurchaseId: { type: "string", description: "The In-App Purchase ID" }
+                    },
+                    required: ["inAppPurchaseId"]
+                }
+            },
+            {
+                name: "create_subscription_version",
+                description: "Create a new editable version of an auto-renewable subscription. Check list_subscription_versions first — reuse an existing PREPARE_FOR_SUBMISSION version if there is one.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        subscriptionId: { type: "string", description: "The subscription ID" }
+                    },
+                    required: ["subscriptionId"]
+                }
+            },
+            {
+                name: "create_subscription_group_version",
+                description: "Create a new editable version of a subscription group. Check list_subscription_group_versions first — reuse an existing PREPARE_FOR_SUBMISSION version if there is one.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        subscriptionGroupId: { type: "string", description: "The subscription group ID" }
+                    },
+                    required: ["subscriptionGroupId"]
+                }
+            },
+            // Review Submission Tools (unified App Review flow)
+            {
+                name: "list_review_submissions",
+                description: "List an app's App Review submissions (the unified flow that groups app versions, IAP/subscription versions, custom product pages, in-app events, Game Center items, etc.). Use state=['READY_FOR_REVIEW'] to find an open draft submission to reuse before creating a new one.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        appId: { type: "string", description: "The app ID (e.g. 656212466)" },
+                        state: {
+                            type: "array",
+                            items: { type: "string", enum: ["READY_FOR_REVIEW", "WAITING_FOR_REVIEW", "IN_REVIEW", "UNRESOLVED_ISSUES", "CANCELING", "COMPLETING", "COMPLETE"] },
+                            description: "Optional filter by submission state(s)"
+                        },
+                        platform: { type: "string", enum: ["IOS", "MAC_OS", "TV_OS", "VISION_OS"], description: "Optional filter by platform" },
+                        includeItems: { type: "boolean", description: "Include the submission items (default: true)", default: true },
+                        limit: { type: "number", description: "Maximum number of submissions to return (default: 50)", minimum: 1, maximum: 200 }
+                    },
+                    required: ["appId"]
+                }
+            },
+            {
+                name: "list_review_submission_items",
+                description: "List the items in a review submission, with each item's state and the resource it points to (app version, IAP version, subscription version, CPP version, etc.).",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        reviewSubmissionId: { type: "string", description: "The review submission ID" },
+                        limit: { type: "number", description: "Maximum number of items to return (default: 200)", minimum: 1, maximum: 200 }
+                    },
+                    required: ["reviewSubmissionId"]
+                }
+            },
+            {
+                name: "create_review_submission",
+                description: "Create a new draft App Review submission for an app and platform. Call list_review_submissions with state=['READY_FOR_REVIEW'] first and reuse an existing open draft for that platform instead of creating another. Creating a draft does not send anything to App Review.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        appId: { type: "string", description: "The app ID (e.g. 656212466)" },
+                        platform: { type: "string", enum: ["IOS", "MAC_OS", "TV_OS", "VISION_OS"], description: "Platform of the submission" }
+                    },
+                    required: ["appId", "platform"]
+                }
+            },
+            {
+                name: "add_review_submission_item",
+                description: "Add an item to a draft review submission (max 200 items per submission). itemKind names what itemId refers to — e.g. inAppPurchaseVersion (an IAP version id), subscriptionVersion, subscriptionGroupVersion, appStoreVersion, appCustomProductPageVersion, appEvent.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        reviewSubmissionId: { type: "string", description: "The draft review submission ID" },
+                        itemKind: {
+                            type: "string",
+                            enum: ["appStoreVersion", "appCustomProductPageVersion", "appStoreVersionExperiment", "appStoreVersionExperimentV2", "appEvent", "appAssetLibraryImage", "appAssetLibraryVideo", "backgroundAssetVersion", "gameCenterAchievementVersion", "gameCenterActivityVersion", "gameCenterChallengeVersion", "gameCenterLeaderboardSetVersion", "gameCenterLeaderboardVersion", "inAppPurchaseVersion", "subscriptionVersion", "subscriptionGroupVersion", "retentionMessageVersion"],
+                            description: "The kind of resource being added"
+                        },
+                        itemId: { type: "string", description: "ID of the resource (e.g. the inAppPurchaseVersion id, not the IAP id)" }
+                    },
+                    required: ["reviewSubmissionId", "itemKind", "itemId"]
+                }
+            },
+            {
+                name: "remove_review_submission_item",
+                description: "Remove an item from a draft review submission.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        reviewSubmissionItemId: { type: "string", description: "The review submission item ID" }
+                    },
+                    required: ["reviewSubmissionItemId"]
+                }
+            },
+            {
+                name: "submit_review_submission",
+                description: "SUBMIT a review submission to Apple App Review. This sends every item in the submission for review and cannot be undone (only canceled). Always confirm with the user and show them the item list (list_review_submission_items) before calling.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        reviewSubmissionId: { type: "string", description: "The review submission ID to submit" }
+                    },
+                    required: ["reviewSubmissionId"]
+                }
+            },
+            {
+                name: "cancel_review_submission",
+                description: "Cancel a review submission that is waiting for or in review. Confirm with the user before calling.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        reviewSubmissionId: { type: "string", description: "The review submission ID to cancel" }
+                    },
+                    required: ["reviewSubmissionId"]
+                }
             }
         ];
         // Sales and Finance Report tools - only available if vendor number is configured
@@ -1308,13 +1539,56 @@ class AppStoreConnectServer {
                     // Customer Reviews
                     case "list_customer_reviews":
                         return formatResponse(await this.reviewHandlers.listCustomerReviews(args));
+                    // In-App Purchases & Subscriptions
+                    case "list_in_app_purchases":
+                        return formatResponse(await this.purchaseHandlers.listInAppPurchases(args));
+                    case "list_subscription_groups":
+                        return formatResponse(await this.purchaseHandlers.listSubscriptionGroups(args));
+                    case "list_subscriptions":
+                        return formatResponse(await this.purchaseHandlers.listSubscriptions(args));
+                    case "list_in_app_purchase_versions":
+                        return formatResponse(await this.purchaseHandlers.listInAppPurchaseVersions(args));
+                    case "list_subscription_versions":
+                        return formatResponse(await this.purchaseHandlers.listSubscriptionVersions(args));
+                    case "list_subscription_group_versions":
+                        return formatResponse(await this.purchaseHandlers.listSubscriptionGroupVersions(args));
+                    case "create_in_app_purchase_version":
+                        return formatResponse(await this.purchaseHandlers.createInAppPurchaseVersion(args));
+                    case "create_subscription_version":
+                        return formatResponse(await this.purchaseHandlers.createSubscriptionVersion(args));
+                    case "create_subscription_group_version":
+                        return formatResponse(await this.purchaseHandlers.createSubscriptionGroupVersion(args));
+                    // Review Submissions
+                    case "list_review_submissions":
+                        return formatResponse(await this.submissionHandlers.listReviewSubmissions(args));
+                    case "list_review_submission_items":
+                        return formatResponse(await this.submissionHandlers.listReviewSubmissionItems(args));
+                    case "create_review_submission":
+                        return formatResponse(await this.submissionHandlers.createReviewSubmission(args));
+                    case "add_review_submission_item":
+                        return formatResponse(await this.submissionHandlers.addReviewSubmissionItem(args));
+                    case "remove_review_submission_item":
+                        return formatResponse(await this.submissionHandlers.removeReviewSubmissionItem(args));
+                    case "submit_review_submission":
+                        return formatResponse(await this.submissionHandlers.submitReviewSubmission(args));
+                    case "cancel_review_submission":
+                        return formatResponse(await this.submissionHandlers.cancelReviewSubmission(args));
                     default:
                         throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${request.params.name}`);
                 }
             }
             catch (error) {
                 if (axios.isAxiosError(error)) {
-                    throw new McpError(ErrorCode.InternalError, `App Store Connect API error: ${error.response?.data?.errors?.[0]?.detail ?? error.message}`);
+                    throw new McpError(ErrorCode.InternalError, `App Store Connect API error: ${error.response?.data?.errors
+                        ?.flatMap(e => [
+                        e?.detail ?? e?.title,
+                        // Review submission failures put per-item reasons in meta.associatedErrors
+                        ...Object.values(e?.meta?.associatedErrors ?? {})
+                            .flat()
+                            .map((a) => a?.detail ?? a?.title),
+                    ])
+                        .filter(Boolean)
+                        .join('; ') || error.message}`);
                 }
                 throw error;
             }
