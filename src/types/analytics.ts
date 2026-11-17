@@ -79,15 +79,6 @@ export interface AnalyticsReportSegment {
   };
 }
 
-/**
- * Flattened list result for the analytics chain: `{ id, ...attributes }` per item,
- * without links/relationships (a raw list of 194 reports is ~70k characters).
- */
-export interface CompactList<T = Record<string, unknown>> {
-  total?: number;
-  data: Array<{ id: string } & T>;
-}
-
 export interface ListAnalyticsReportRequestsResponse {
   data: AnalyticsReportRequestResponse['data'][];
 }

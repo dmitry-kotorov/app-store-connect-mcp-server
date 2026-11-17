@@ -51,6 +51,7 @@ This server transforms complex App Store Connect operations into simple conversa
   - Create new app store versions with release scheduling
   - List all app store versions for an app
   - List all localizations for an app version
+  - Read screenshot and app preview sets per localization (file names, checksums, delivery state)
   - Get specific localization details
   - Update app descriptions, keywords, and promotional text
   - Manage marketing and support URLs
@@ -356,22 +357,29 @@ Create a new app store version for an app.
 ```
 
 #### `list_app_store_versions`
-Get all app store versions for a specific app.
+List an app's App Store versions as a compact list: `{id, ...attributes, isLive}`, one per line, without
+relationships or links (20 versions with three fields is ~3.5k characters).
+
+`isLive` is inferred: per platform, the most recently created version in `READY_FOR_DISTRIBUTION`. Apple keeps
+every released version at `appStoreState: READY_FOR_SALE` / `appVersionState: READY_FOR_DISTRIBUTION`, so
+neither field identifies the live one. The lookup covers all versions, so filters and `limit` don't affect it.
 
 **Parameters:**
 - `appId` (required): The ID of the app
 - `limit` (optional): Maximum number of versions to return (default: 100, max: 200)
+- `fields` (optional): Attributes to return (default: versionString, platform, appVersionState, releaseType, earliestReleaseDate, createdDate). `appStoreState` is deprecated by Apple
+- `raw` (optional): Return Apple's full JSON:API response instead (~5 KB per version without `fields`)
 - `filter` (optional): Filter options
-  - `platform`: Filter by platform (IOS, MAC_OS, TV_OS)
+  - `platform`: IOS, MAC_OS, TV_OS, VISION_OS
   - `versionString`: Filter by version string (e.g., '1.0.0')
-  - `appStoreState`: Filter by state (e.g., READY_FOR_SALE, PREPARE_FOR_SUBMISSION)
+  - `appVersionState`: Filter by version state (e.g., READY_FOR_DISTRIBUTION, PREPARE_FOR_SUBMISSION)
+  - `appStoreState`: Filter by the deprecated store state
 
 **Example:**
 ```
 "List all versions for app 123456789"
-"Show iOS versions for app 123456789"
+"Which iOS version of app 123456789 is live?"
 "Find version 2.0.0 for app 123456789"
-"List versions in review for app 123456789"
 ```
 
 #### `list_app_store_version_localizations`
@@ -413,6 +421,31 @@ Update a specific field in an app store version localization.
 "Change keywords for LOCALE123 to 'productivity, tasks, organize'"
 "Update what's new text for LOCALE123 to 'Bug fixes and performance improvements'"
 ```
+
+### 🖼️ Screenshot & Preview Tools
+
+Read-only. Sets hang off a version localization (or a custom product page localization). Get the localization id
+cheaply with `list_app_store_version_localizations` using `filter.locale` and
+`fields.appStoreVersionLocalizations: ["locale"]`; unfiltered, that call returns every locale's full text.
+
+#### `list_app_screenshot_sets`
+List screenshot sets, each with its screenshots in display order: file name, size, `sourceFileChecksum`,
+dimensions and delivery state. Comparing checksums across versions shows when screenshots changed. A locale
+with no sets of its own (the result is empty) shows another locale's screenshots on the store.
+
+**Parameters:**
+- `appStoreVersionLocalizationId` or `appCustomProductPageLocalizationId` (exactly one)
+- `screenshotDisplayType` (optional): e.g. `APP_IPHONE_65` (6.5-inch iPhone), `APP_IPHONE_67`, `APP_IPAD_PRO_3GEN_129`
+- `includeImageUrls` (optional): add a full-size PNG URL per screenshot
+
+#### `list_app_preview_sets`
+List app preview (video) sets, each with its previews: file name, size, checksum, poster frame time code,
+asset and video delivery states.
+
+**Parameters:**
+- `appStoreVersionLocalizationId` or `appCustomProductPageLocalizationId` (exactly one)
+- `previewType` (optional): e.g. `IPHONE_65`
+- `includeUrls` (optional): add poster image and video URLs
 
 ### 🎯 Custom Product Page Tools
 
@@ -801,6 +834,9 @@ List all available schemes in an Xcode project or workspace.
 ```
 
 ## Error Handling
+
+Apple's "requires an in-effect agreement" error gets a hint appended: it is an account-level agreement for
+the Account Holder to accept in App Store Connect (Business > Agreements), not a fault in the key or request.
 
 The server implements proper error handling for:
 - Invalid authentication

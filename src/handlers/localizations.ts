@@ -24,10 +24,21 @@ import {
   AppInfoLocalizationResponse,
   AppInfoLocalizationUpdateRequest,
   AppInfoLocalizationField,
-  AppInfoLocalization
+  AppInfoLocalization,
+  CompactList
 } from '../types/index.js';
 import { validateRequired, sanitizeLimit, buildFilterParams, buildFieldParams, pathId } from '../utils/index.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+
+/** appStoreVersions attributes from the API 4.6 spec (fields[appStoreVersions]). */
+const APP_STORE_VERSION_ATTRIBUTES = [
+  'platform', 'versionString', 'appStoreState', 'appVersionState', 'copyright', 'reviewType',
+  'releaseType', 'earliestReleaseDate', 'usesIdfa', 'downloadable', 'createdDate',
+];
+
+const DEFAULT_APP_STORE_VERSION_FIELDS = [
+  'versionString', 'platform', 'appVersionState', 'releaseType', 'earliestReleaseDate', 'createdDate',
+];
 
 export class LocalizationHandlers {
   constructor(private client: AppStoreConnectClient) {}
@@ -39,32 +50,71 @@ export class LocalizationHandlers {
       platform?: string;
       versionString?: string;
       appStoreState?: string;
+      appVersionState?: string;
     };
-  }): Promise<ListAppStoreVersionsResponse> {
-    const { appId, limit = 100, filter } = args;
-    
-    validateRequired(args, ['appId']);
-    
-    const params: Record<string, any> = {
-      limit: sanitizeLimit(limit)
-    };
+    fields?: string[];
+    raw?: boolean;
+  }): Promise<ListAppStoreVersionsResponse | CompactList> {
+    const { appId, limit = 100, filter, raw = false } = args;
 
-    if (filter?.platform) {
-      params['filter[platform]'] = filter.platform;
+    validateRequired(args, ['appId']);
+
+    const fields = args.fields?.length ? args.fields : (raw ? [] : DEFAULT_APP_STORE_VERSION_FIELDS);
+    const unknown = fields.filter(f => !APP_STORE_VERSION_ATTRIBUTES.includes(f));
+    if (unknown.length) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        `Unknown appStoreVersions field(s): ${unknown.join(', ')}. Valid fields: ${APP_STORE_VERSION_ATTRIBUTES.join(', ')}`
+      );
     }
-    
-    if (filter?.versionString) {
-      params['filter[versionString]'] = filter.versionString;
+
+    const params: Record<string, any> = {
+      limit: sanitizeLimit(limit, 200),
+      ...buildFilterParams({
+        platform: filter?.platform,
+        versionString: filter?.versionString,
+        appStoreState: filter?.appStoreState,
+        appVersionState: filter?.appVersionState,
+      }),
+    };
+    // Naming only attributes also makes Apple leave out the relationships block.
+    if (fields.length) params['fields[appStoreVersions]'] = fields.join(',');
+
+    const path = `/apps/${pathId(appId, 'appId')}/appStoreVersions`;
+    const response = await this.client.get<ListAppStoreVersionsResponse>(path, params);
+    if (raw) return response;
+
+    const liveIds = await this.findLiveVersionIds(path, filter?.platform);
+    return {
+      total: response.meta?.paging?.total,
+      data: response.data.map(v => ({ id: v.id, ...v.attributes, isLive: liveIds.has(v.id) })),
+    };
+  }
+
+  /**
+   * Neither appStoreState (every released version stays READY_FOR_SALE) nor
+   * appVersionState (READY_FOR_DISTRIBUTION) tells the live version from the
+   * ones it replaced, so the live version is inferred: per platform, the most
+   * recently created version that is READY_FOR_DISTRIBUTION. Looked up across
+   * all versions, so the result does not depend on the caller's filters or limit.
+   */
+  private async findLiveVersionIds(path: string, platform?: string): Promise<Set<string>> {
+    const released = await this.client.get<ListAppStoreVersionsResponse>(path, {
+      limit: 200,
+      'filter[appVersionState]': 'READY_FOR_DISTRIBUTION',
+      ...(platform ? { 'filter[platform]': platform } : {}),
+      'fields[appStoreVersions]': 'platform,createdDate',
+    });
+    const newest = new Map<string, { id: string; created: string }>();
+    for (const v of released.data) {
+      const key = v.attributes.platform ?? '';
+      const created = v.attributes.createdDate ?? '';
+      const current = newest.get(key);
+      if (!current || Date.parse(created) > Date.parse(current.created)) {
+        newest.set(key, { id: v.id, created });
+      }
     }
-    
-    if (filter?.appStoreState) {
-      params['filter[appStoreState]'] = filter.appStoreState;
-    }
-    
-    return this.client.get<ListAppStoreVersionsResponse>(
-      `/apps/${pathId(appId, 'appId')}/appStoreVersions`,
-      params
-    );
+    return new Set([...newest.values()].map(v => v.id));
   }
 
   async listAppStoreVersionLocalizations(args: {

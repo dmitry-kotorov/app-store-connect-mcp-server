@@ -9,3 +9,4 @@ export { LocalizationHandlers } from './localizations.js';
 export { ReviewHandlers } from './reviews.js';
 export { PurchaseHandlers } from './purchases.js';
 export { SubmissionHandlers } from './submissions.js';
+export { ScreenshotHandlers } from './screenshots.js';

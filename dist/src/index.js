@@ -4,7 +4,8 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { ListToolsRequestSchema, CallToolRequestSchema, ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import axios from 'axios';
 import { AppStoreConnectClient } from './services/index.js';
-import { AppHandlers, BetaHandlers, BundleHandlers, DeviceHandlers, UserHandlers, AnalyticsHandlers, XcodeHandlers, LocalizationHandlers, ReviewHandlers, PurchaseHandlers, SubmissionHandlers } from './handlers/index.js';
+import { agreementHint } from './utils/index.js';
+import { AppHandlers, BetaHandlers, BundleHandlers, DeviceHandlers, UserHandlers, AnalyticsHandlers, XcodeHandlers, LocalizationHandlers, ReviewHandlers, PurchaseHandlers, SubmissionHandlers, ScreenshotHandlers } from './handlers/index.js';
 // Load environment variables
 const config = {
     keyId: process.env.APP_STORE_CONNECT_KEY_ID,
@@ -26,6 +27,7 @@ class AppStoreConnectServer {
     reviewHandlers;
     purchaseHandlers;
     submissionHandlers;
+    screenshotHandlers;
     constructor() {
         this.server = new Server({
             name: "appstore-connect-server",
@@ -47,6 +49,7 @@ class AppStoreConnectServer {
         this.reviewHandlers = new ReviewHandlers(this.client);
         this.purchaseHandlers = new PurchaseHandlers(this.client);
         this.submissionHandlers = new SubmissionHandlers(this.client);
+        this.screenshotHandlers = new ScreenshotHandlers(this.client);
         this.setupHandlers();
     }
     buildToolsList() {
@@ -311,7 +314,7 @@ class AppStoreConnectServer {
             },
             {
                 name: "list_app_store_versions",
-                description: "Get all app store versions for a specific app",
+                description: "List an app's App Store versions as a compact list ({id, ...attributes, isLive}, one per line). isLive is inferred: per platform, the most recently created version in READY_FOR_DISTRIBUTION. Apple keeps every released version at appStoreState READY_FOR_SALE / appVersionState READY_FOR_DISTRIBUTION, so neither field identifies the live one",
                 inputSchema: {
                     type: "object",
                     properties: {
@@ -325,46 +328,100 @@ class AppStoreConnectServer {
                             minimum: 1,
                             maximum: 200
                         },
+                        fields: {
+                            type: "array",
+                            items: {
+                                type: "string",
+                                enum: ["platform", "versionString", "appStoreState", "appVersionState", "copyright", "reviewType", "releaseType", "earliestReleaseDate", "usesIdfa", "downloadable", "createdDate"]
+                            },
+                            description: "Attributes to return (default: versionString, platform, appVersionState, releaseType, earliestReleaseDate, createdDate). appStoreState is deprecated by Apple"
+                        },
+                        raw: {
+                            type: "boolean",
+                            description: "Return Apple's full JSON:API response (all attributes, relationships and links unless fields is set) instead of the compact list. Large: ~5 KB per version",
+                            default: false
+                        },
                         filter: {
                             type: "object",
                             properties: {
                                 platform: {
                                     type: "string",
-                                    description: "Filter by platform (IOS, MAC_OS, TV_OS)",
-                                    enum: ["IOS", "MAC_OS", "TV_OS"]
+                                    description: "Filter by platform",
+                                    enum: ["IOS", "MAC_OS", "TV_OS", "VISION_OS"]
                                 },
                                 versionString: {
                                     type: "string",
                                     description: "Filter by version string (e.g., '1.0.0')"
                                 },
+                                appVersionState: {
+                                    type: "string",
+                                    description: "Filter by version state",
+                                    enum: ["ACCEPTED", "DEVELOPER_REJECTED", "IN_REVIEW", "INVALID_BINARY", "METADATA_REJECTED", "PENDING_APPLE_RELEASE", "PENDING_DEVELOPER_RELEASE", "PREPARE_FOR_SUBMISSION", "PROCESSING_FOR_DISTRIBUTION", "READY_FOR_DISTRIBUTION", "READY_FOR_REVIEW", "REJECTED", "REPLACED_WITH_NEW_VERSION", "WAITING_FOR_EXPORT_COMPLIANCE", "WAITING_FOR_REVIEW"]
+                                },
                                 appStoreState: {
                                     type: "string",
-                                    description: "Filter by app store state",
-                                    enum: [
-                                        "DEVELOPER_REMOVED_FROM_SALE",
-                                        "DEVELOPER_REJECTED",
-                                        "IN_REVIEW",
-                                        "INVALID_BINARY",
-                                        "METADATA_REJECTED",
-                                        "PENDING_APPLE_RELEASE",
-                                        "PENDING_CONTRACT",
-                                        "PENDING_DEVELOPER_RELEASE",
-                                        "PREPARE_FOR_SUBMISSION",
-                                        "PREORDER_READY_FOR_SALE",
-                                        "PROCESSING_FOR_APP_STORE",
-                                        "READY_FOR_SALE",
-                                        "REJECTED",
-                                        "REMOVED_FROM_SALE",
-                                        "WAITING_FOR_EXPORT_COMPLIANCE",
-                                        "WAITING_FOR_REVIEW",
-                                        "REPLACED_WITH_NEW_VERSION"
-                                    ]
+                                    description: "Filter by app store state (deprecated by Apple; prefer appVersionState)",
+                                    enum: ["ACCEPTED", "DEVELOPER_REMOVED_FROM_SALE", "DEVELOPER_REJECTED", "IN_REVIEW", "INVALID_BINARY", "METADATA_REJECTED", "PENDING_APPLE_RELEASE", "PENDING_CONTRACT", "PENDING_DEVELOPER_RELEASE", "PREPARE_FOR_SUBMISSION", "PREORDER_READY_FOR_SALE", "PROCESSING_FOR_APP_STORE", "READY_FOR_REVIEW", "READY_FOR_SALE", "REJECTED", "REMOVED_FROM_SALE", "WAITING_FOR_EXPORT_COMPLIANCE", "WAITING_FOR_REVIEW", "REPLACED_WITH_NEW_VERSION", "NOT_APPLICABLE"]
                                 }
                             },
                             description: "Optional filters for app store versions"
                         }
                     },
                     required: ["appId"]
+                }
+            },
+            {
+                name: "list_app_screenshot_sets",
+                description: "List the screenshot sets of a version localization (or custom product page localization), each with its screenshots in display order: file name, size, source file checksum, dimensions, delivery state. Comparing checksums across versions shows when screenshots changed. A locale with no sets of its own falls back to another locale's screenshots on the store. Get the localization id with list_app_store_version_localizations using filter.locale and fields [\"locale\"] (unfiltered it returns every locale's full text)",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        appStoreVersionLocalizationId: {
+                            type: "string",
+                            description: "An App Store version localization ID (from list_app_store_version_localizations)"
+                        },
+                        appCustomProductPageLocalizationId: {
+                            type: "string",
+                            description: "Alternatively: a custom product page localization ID"
+                        },
+                        screenshotDisplayType: {
+                            type: "string",
+                            enum: ["APP_IPHONE_67", "APP_IPHONE_61", "APP_IPHONE_65", "APP_IPHONE_58", "APP_IPHONE_55", "APP_IPHONE_47", "APP_IPHONE_40", "APP_IPHONE_35", "APP_IPAD_PRO_3GEN_129", "APP_IPAD_PRO_3GEN_11", "APP_IPAD_PRO_129", "APP_IPAD_105", "APP_IPAD_97", "APP_DESKTOP", "APP_WATCH_ULTRA", "APP_WATCH_SERIES_10", "APP_WATCH_SERIES_7", "APP_WATCH_SERIES_4", "APP_WATCH_SERIES_3", "APP_APPLE_TV", "APP_APPLE_VISION_PRO", "IMESSAGE_APP_IPHONE_67", "IMESSAGE_APP_IPHONE_61", "IMESSAGE_APP_IPHONE_65", "IMESSAGE_APP_IPHONE_58", "IMESSAGE_APP_IPHONE_55", "IMESSAGE_APP_IPHONE_47", "IMESSAGE_APP_IPHONE_40", "IMESSAGE_APP_IPAD_PRO_3GEN_129", "IMESSAGE_APP_IPAD_PRO_3GEN_11", "IMESSAGE_APP_IPAD_PRO_129", "IMESSAGE_APP_IPAD_105", "IMESSAGE_APP_IPAD_97"],
+                            description: "Only this display type, e.g. APP_IPHONE_65 (6.5-inch iPhone) or APP_IPHONE_67"
+                        },
+                        includeImageUrls: {
+                            type: "boolean",
+                            description: "Add a full-size image URL per screenshot (default false)",
+                            default: false
+                        }
+                    }
+                }
+            },
+            {
+                name: "list_app_preview_sets",
+                description: "List the app preview (video) sets of a version localization (or custom product page localization), each with its previews: file name, size, checksum, poster frame time code, delivery states",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        appStoreVersionLocalizationId: {
+                            type: "string",
+                            description: "An App Store version localization ID (from list_app_store_version_localizations)"
+                        },
+                        appCustomProductPageLocalizationId: {
+                            type: "string",
+                            description: "Alternatively: a custom product page localization ID"
+                        },
+                        previewType: {
+                            type: "string",
+                            enum: ["IPHONE_67", "IPHONE_61", "IPHONE_65", "IPHONE_58", "IPHONE_55", "IPHONE_47", "IPHONE_40", "IPHONE_35", "IPAD_PRO_3GEN_129", "IPAD_PRO_3GEN_11", "IPAD_PRO_129", "IPAD_105", "IPAD_97", "DESKTOP", "APPLE_TV", "APPLE_VISION_PRO"],
+                            description: "Only this preview type, e.g. IPHONE_65"
+                        },
+                        includeUrls: {
+                            type: "boolean",
+                            description: "Add poster image and video URLs per preview (default false)",
+                            default: false
+                        }
+                    }
                 }
             },
             {
@@ -1592,6 +1649,12 @@ class AppStoreConnectServer {
                 const formatCompact = (list) => formatText(`{"total": ${list.total ?? list.data.length}, "returned": ${list.data.length}, "data": [\n` +
                     list.data.map(item => JSON.stringify(item)).join(',\n') +
                     '\n]}');
+                // Media sets: one line per set header and one per item, still valid JSON
+                const formatMediaSets = (sets) => formatText(`{"total": ${sets.total}, "data": [\n` +
+                    sets.data.map(({ items, ...set }) => JSON.stringify(set).slice(0, -1) + ',"items":[\n' +
+                        items.map(item => '  ' + JSON.stringify(item)).join(',\n') +
+                        '\n]}').join(',\n') +
+                    '\n]}');
                 switch (request.params.name) {
                     // App Management
                     case "list_apps":
@@ -1623,8 +1686,14 @@ class AppStoreConnectServer {
                     // App Store Version Localizations
                     case "create_app_store_version":
                         return formatResponse(await this.localizationHandlers.createAppStoreVersion(args));
-                    case "list_app_store_versions":
-                        return formatResponse(await this.localizationHandlers.listAppStoreVersions(args));
+                    case "list_app_store_versions": {
+                        const versions = await this.localizationHandlers.listAppStoreVersions(args);
+                        return args.raw ? formatResponse(versions) : formatCompact(versions);
+                    }
+                    case "list_app_screenshot_sets":
+                        return formatMediaSets(await this.screenshotHandlers.listAppScreenshotSets(args));
+                    case "list_app_preview_sets":
+                        return formatMediaSets(await this.screenshotHandlers.listAppPreviewSets(args));
                     case "list_app_store_version_localizations":
                         return formatResponse(await this.localizationHandlers.listAppStoreVersionLocalizations(args));
                     case "get_app_store_version_localization":
@@ -1747,7 +1816,7 @@ class AppStoreConnectServer {
                             .map((a) => a?.detail ?? a?.title),
                     ])
                         .filter(Boolean)
-                        .join('; ') || error.message}`);
+                        .join('; ') || error.message}${agreementHint(error.response?.data)}`);
                 }
                 throw error;
             }
