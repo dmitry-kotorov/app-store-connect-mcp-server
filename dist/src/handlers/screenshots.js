@@ -1,14 +1,18 @@
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { PREVIEW_TYPES, SCREENSHOT_DISPLAY_TYPES } from '../types/index.js';
 import { pathId, validateEnum } from '../utils/index.js';
+const MEDIA_PARENTS = [
+    ['appStoreVersionLocalizationId', 'appStoreVersionLocalizations'],
+    ['appCustomProductPageLocalizationId', 'appCustomProductPageLocalizations'],
+    ['experimentTreatmentLocalizationId', 'appStoreVersionExperimentTreatmentLocalizations'],
+];
 const parentPath = (args) => {
-    const { appStoreVersionLocalizationId: versionLoc, appCustomProductPageLocalizationId: cppLoc } = args;
-    if (!versionLoc === !cppLoc) {
-        throw new McpError(ErrorCode.InvalidParams, 'Provide exactly one of appStoreVersionLocalizationId or appCustomProductPageLocalizationId');
+    const given = MEDIA_PARENTS.filter(([arg]) => args[arg]);
+    if (given.length !== 1) {
+        throw new McpError(ErrorCode.InvalidParams, `Provide exactly one of ${MEDIA_PARENTS.map(([arg]) => arg).join(', ')}`);
     }
-    return versionLoc
-        ? `/appStoreVersionLocalizations/${pathId(versionLoc, 'appStoreVersionLocalizationId')}`
-        : `/appCustomProductPageLocalizations/${pathId(cppLoc, 'appCustomProductPageLocalizationId')}`;
+    const [arg, resource] = given[0];
+    return `/${resource}/${pathId(args[arg], arg)}`;
 };
 /** Apple's image templateUrl has {w}, {h} and {f} placeholders; fill them for a full-size PNG. */
 const imageUrl = (asset) => asset?.templateUrl && asset.width && asset.height

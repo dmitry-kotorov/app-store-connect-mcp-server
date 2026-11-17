@@ -12,23 +12,32 @@ import {
 } from '../types/index.js';
 import { pathId, validateEnum } from '../utils/index.js';
 
-/** Screenshot and preview sets hang off a version localization or a custom product page localization. */
+/**
+ * Screenshot and preview sets hang off a version localization, a custom product
+ * page localization, or a Product Page Optimization treatment localization.
+ */
 interface MediaParent {
   appStoreVersionLocalizationId?: string;
   appCustomProductPageLocalizationId?: string;
+  experimentTreatmentLocalizationId?: string;
 }
 
+const MEDIA_PARENTS: Array<[keyof MediaParent, string]> = [
+  ['appStoreVersionLocalizationId', 'appStoreVersionLocalizations'],
+  ['appCustomProductPageLocalizationId', 'appCustomProductPageLocalizations'],
+  ['experimentTreatmentLocalizationId', 'appStoreVersionExperimentTreatmentLocalizations'],
+];
+
 const parentPath = (args: MediaParent): string => {
-  const { appStoreVersionLocalizationId: versionLoc, appCustomProductPageLocalizationId: cppLoc } = args;
-  if (!versionLoc === !cppLoc) {
+  const given = MEDIA_PARENTS.filter(([arg]) => args[arg]);
+  if (given.length !== 1) {
     throw new McpError(
       ErrorCode.InvalidParams,
-      'Provide exactly one of appStoreVersionLocalizationId or appCustomProductPageLocalizationId'
+      `Provide exactly one of ${MEDIA_PARENTS.map(([arg]) => arg).join(', ')}`
     );
   }
-  return versionLoc
-    ? `/appStoreVersionLocalizations/${pathId(versionLoc, 'appStoreVersionLocalizationId')}`
-    : `/appCustomProductPageLocalizations/${pathId(cppLoc, 'appCustomProductPageLocalizationId')}`;
+  const [arg, resource] = given[0];
+  return `/${resource}/${pathId(args[arg], arg)}`;
 };
 
 /** Apple's image templateUrl has {w}, {h} and {f} placeholders; fill them for a full-size PNG. */
