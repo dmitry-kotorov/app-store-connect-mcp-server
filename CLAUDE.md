@@ -11,6 +11,11 @@ MCP server (stdio) exposing App Store Connect API tools. TypeScript, built with 
 - Live checks need real credentials via the `APP_STORE_CONNECT_*` env vars (see README). Only exercise
   read tools live; never create/submit/cancel review submissions or create versions against the real
   account without explicit user approval.
+- For live checks, reuse the `APP_STORE_CONNECT_*` env of an existing `app-store-connect` MCP server config
+  rather than copying key material anywhere. Drive the built server over stdio (same JSON-RPC lines as the
+  smoke test plus `tools/call`), or sign a JWT and GET the API directly to compare against raw responses.
+- Verify every Apple-side `filter[...]` live before relying on it — some silently return nothing (see
+  "API quirks").
 
 ## `dist/` is committed
 
@@ -49,6 +54,18 @@ MCP configs point at this checkout's `dist/`. So:
 - List tools that can return many items return a `CompactList` (`{id, ...attributes}`, rendered one per line by
   `formatCompact`) rather than the raw JSON:API payload, whose links/relationships dominate its size.
 
+## API quirks (checked live, Nov 2026)
+
+- `appStoreVersionExperimentsV2`: `filter[state]=COMPLETED` returns nothing for tests that read back as
+  `COMPLETED` — the state filter is applied locally. Tests created via the v1 experiments API appear in the
+  V2 list with the same ids.
+- `/financeReports` requires `filter[reportType]` (`FINANCIAL` or `FINANCE_DETAIL`).
+- Analytics report instances are not returned in date order, and daily instances overlap (each holds ~2
+  days; the next repeats the later one) — dedupe by date when combining.
+- No API gives a version's status history or release timestamp; `isLive` in `list_app_store_versions` is
+  derived (newest `READY_FOR_DISTRIBUTION` per platform by `createdDate`).
+- Sales report product types `F3`/`F7` don't match Apple's documented meanings; don't label them.
+
 ## IAP / subscriptions & review submissions (API 4.6)
 
 - Apple removes the v1 IAP/subscription localization, image and `*Submissions` resources from early 2027.
@@ -65,3 +82,12 @@ MCP configs point at this checkout's `dist/`. So:
 
 - Editing IAP/subscription version localizations and images.
 - Asset upload (reservation/upload/commit) for any resource — screenshots/images are managed in the ASC UI.
+- Version release history (no API — see "API quirks").
+
+## Open items
+
+- `list_app_store_version_localizations` returns ~250k characters unfiltered; a `CompactList` (as in
+  `list_app_store_versions`) would fix it.
+- The "return the existing request" (409) path of `create_analytics_report_request` is tested offline only.
+- Change requests and delivery notes for this server live in the sibling `gw-appstores-presence` repo
+  (`*-asc-mcp-change-request-*.md`, `*-asc-mcp-cr-*-delivery-notes.md`).
