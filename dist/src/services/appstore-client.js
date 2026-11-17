@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { gunzipSync } from 'zlib';
 import { AuthService } from './auth.js';
 /**
  * Absolute base for v2 resources (e.g. /v2/inAppPurchases). The axios baseURL is
@@ -45,17 +46,63 @@ export class AppStoreConnectClient {
     async patch(url, data) {
         return this.request('PATCH', url, data);
     }
-    async downloadFromUrl(url) {
+    /**
+     * GET an API resource whose body is a file (sales/finance reports are served as
+     * application/a-gzip). Returns the body unpacked. On failure Apple's JSON error
+     * body also arrives as bytes, so it is decoded back into an object before the
+     * error is rethrown — the central handler in index.ts reads errors[].detail.
+     */
+    async getFile(url, params) {
         const token = await this.authService.generateToken();
-        const response = await axios.get(url, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-        return {
-            data: response.data,
-            contentType: response.headers['content-type'],
-            size: response.headers['content-length']
-        };
+        try {
+            const response = await this.axiosInstance.get(url, {
+                params,
+                responseType: 'arraybuffer',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            return gunzipIfNeeded(Buffer.from(response.data));
+        }
+        catch (error) {
+            decodeBinaryErrorBody(error);
+            throw error;
+        }
+    }
+    /**
+     * Download a pre-signed URL returned by the API (analytics report segments live
+     * on S3). The URL carries its own signature, so no Authorization header is sent:
+     * the API token must never leave api.appstoreconnect.apple.com.
+     */
+    async downloadPresignedUrl(url, maxBytes = 100 * 1024 * 1024) {
+        if (!/^https:\/\//i.test(url)) {
+            throw new Error(`Refusing to download a non-HTTPS URL: ${url}`);
+        }
+        try {
+            const response = await axios.get(url, {
+                responseType: 'arraybuffer',
+                maxContentLength: maxBytes,
+            });
+            return gunzipIfNeeded(Buffer.from(response.data));
+        }
+        catch (error) {
+            decodeBinaryErrorBody(error);
+            throw error;
+        }
+    }
+}
+export function gunzipIfNeeded(buf) {
+    return buf.length > 2 && buf[0] === 0x1f && buf[1] === 0x8b ? gunzipSync(buf) : buf;
+}
+function decodeBinaryErrorBody(error) {
+    if (!axios.isAxiosError(error) || !error.response)
+        return;
+    const body = error.response.data;
+    if (!(body instanceof ArrayBuffer) && !Buffer.isBuffer(body))
+        return;
+    const text = gunzipIfNeeded(Buffer.from(body)).toString('utf8');
+    try {
+        error.response.data = JSON.parse(text);
+    }
+    catch {
+        error.response.data = { errors: [{ detail: text.slice(0, 500) }] };
     }
 }

@@ -82,10 +82,10 @@ This server transforms complex App Store Connect operations into simple conversa
   - Filter users by role and access
 
 - **Analytics & Reports**
-  - Create analytics report requests for apps
-  - Download App Store engagement, commerce, and usage analytics
+  - Create and list analytics report requests; walk reports, instances and segments
+  - Download App Store engagement, commerce, and usage analytics as filtered or aggregated tables
   - Access performance and frameworks usage reports
-  - Download sales and trends reports (daily, weekly, monthly, yearly)
+  - Download sales and trends reports (daily, weekly, monthly, yearly), filtered or aggregated
   - Download finance reports by region
 
 - **Xcode Development Tools**
@@ -679,93 +679,112 @@ Get a list of all users on your App Store Connect team.
 
 ### 📊 Analytics & Reports Tools
 
+The chain's list tools return compact results: `{ "total", "returned", "data": [ {id, ...attributes} ] }`,
+one item per line, without links.
+
+Analytics data is reached through a chain: **request → report → instance → segment → download**.
+For example, installs by source: `list_analytics_report_requests` (take the ONGOING request) →
+`list_analytics_reports` with `filter.name = "App Downloads Detailed"` → `list_analytics_report_instances`
+(`granularity: DAILY`) → `download_analytics_report_segment` with that `instanceId` and `groupBy: ["Source Type"]`.
+
+**Daily instances overlap:** each DAILY instance holds about two days of data, and the next instance repeats the
+later day with the same counts. To build a series, group by `Date` and take each date once; never sum instances.
+
 #### `create_analytics_report_request`
-Create a new analytics report request for an app.
+Create an analytics report request for an app. If Apple answers that one already exists (an app has at
+appears to allow only one ONGOING request per app), the existing request of that access type is looked up and
+returned with `alreadyExisted: true`.
 
 **Parameters:**
 - `appId` (required): The app ID
-- `accessType` (required): Type of analytics (ONGOING or ONE_TIME_SNAPSHOT)
-- `frequency` (optional): Report frequency for ongoing reports (DAILY, WEEKLY, MONTHLY)
-- `startDate` (optional): Start date (YYYY-MM-DD)
-- `endDate` (optional): End date (YYYY-MM-DD)
+- `accessType` (optional): ONGOING or ONE_TIME_SNAPSHOT (default)
 
-**Example:**
-```
-"Create daily analytics report for app 123456789"
-"Generate one-time snapshot report for app 123456789 from 2024-01-01 to 2024-01-31"
-```
+#### `list_analytics_report_requests`
+List an app's analytics report requests: id, `accessType`, `stoppedDueToInactivity`.
+
+**Parameters:**
+- `appId` (required): The app ID
+- `accessType` (optional): ONGOING or ONE_TIME_SNAPSHOT
+- `limit` (optional): Maximum results (default: 50, max: 200)
 
 #### `list_analytics_reports`
-Get available analytics reports for a request.
+List the reports of a request (id, name, category). An ONGOING request has ~200 reports (~24k characters
+unfiltered), so filter by `name` or `category` when possible.
 
 **Parameters:**
 - `reportRequestId` (required): The report request ID
-- `limit` (optional): Maximum results (default: 100, max: 200)
-- `filter` (optional): Filter by category, name, or date
+- `limit` (optional): Maximum results (default: 200, max: 200)
+- `filter` (optional): `category` (APP_USAGE, APP_STORE_ENGAGEMENT, COMMERCE, FRAMEWORK_USAGE, PERFORMANCE) and/or exact `name`
 
-**Example:**
-```
-"List reports for request REQ123"
-"Show app usage reports for request REQ123"
-```
-
-#### `list_analytics_report_segments`
-Get segments for a specific analytics report.
+#### `list_analytics_report_instances`
+List a report's instances, one per granularity and processing date. They are not returned in date order; use
+`processingDate` to pick one.
 
 **Parameters:**
 - `reportId` (required): The analytics report ID
-- `limit` (optional): Maximum results (default: 100, max: 200)
+- `granularity` (optional): DAILY, WEEKLY or MONTHLY
+- `processingDate` (optional): YYYY-MM-DD
+- `limit` (optional): Maximum results (default: 200, max: 200)
 
-**Example:**
-```
-"List segments for report REPORT123"
-"Get download URLs for report REPORT123"
-```
-
-#### `download_analytics_report_segment`
-Download data from an analytics report segment.
+#### `list_analytics_report_segments`
+List the data segments of an instance (id, size, checksum).
 
 **Parameters:**
-- `url` (required): The segment download URL
+- `instanceId` (required): The analytics report instance ID
+- `limit` (optional): Maximum results (default: 200, max: 200)
 
-**Example:**
-```
-"Download data from https://api.appstoreconnect.apple.com/..."
-```
+#### `download_analytics_report_segment`
+Download one segment, or every segment of an instance, unpacked to tab-separated text. The pre-signed
+download URL is fetched fresh by id and downloaded without the API token.
+
+**Parameters:**
+- `segmentId` or `instanceId` (exactly one)
+- Report shaping (see below); `sum` defaults to `Counts`
 
 ### 💰 Sales & Finance Reports Tools (Requires Vendor Number)
 
+**Report shaping.** Report files are large (a monthly sales summary is ~2,600 rows / 500k characters), so the
+sales report and segment download tools return a summary line, the available columns, a totals line and a
+tab-separated body, and accept:
+- `filter`: `{ "<column>": "value" | ["v1", "v2"] }`, case-insensitive exact match
+- `groupBy`: columns to aggregate by; output has one row per combination, the `sum` columns summed, and a row count, sorted by the first sum
+- `sum`: numeric columns to sum (default `Units` for sales, `Counts` for analytics)
+- `columns`: without `groupBy`, which columns to return
+- `limit`: output rows (default 50, max 1000)
+
 #### `download_sales_report`
-Download sales and trends reports.
+Download a Sales and Trends report.
 
 **Parameters:**
-- `frequency` (required): Report frequency (DAILY, WEEKLY, MONTHLY, YEARLY)
-- `reportDate` (required): Date in appropriate format
-- `reportType` (required): Type of report (SALES, SUBSCRIPTION, SUBSCRIPTION_EVENT, SUBSCRIBER, NEWSSTAND, PREORDER)
-- `reportSubType` (required): SUMMARY or DETAILED
+- `reportDate` (required): DAILY `YYYY-MM-DD`, WEEKLY `YYYY-MM-DD` (the Sunday that ends the week), MONTHLY `YYYY-MM`, YEARLY `YYYY`
+- `frequency` (optional): DAILY, WEEKLY, MONTHLY (default), YEARLY
+- `reportType` (optional): SALES (default), PRE_ORDER, NEWSSTAND, SUBSCRIPTION, SUBSCRIPTION_EVENT, SUBSCRIBER, SUBSCRIPTION_OFFER_CODE_REDEMPTION, INSTALLS, FIRST_ANNUAL, WIN_BACK_ELIGIBILITY
+- `reportSubType` (optional): SUMMARY (default), DETAILED, SUMMARY_INSTALL_TYPE, SUMMARY_TERRITORY, SUMMARY_CHANNEL
+- `version` (optional): report format version, e.g. `1_0`
+- `appleId`, `sku`, `countryCode[]`, `productTypeIdentifier[]` (optional): shortcuts for filtering the matching columns
+- Report shaping (see above)
 - `vendorNumber` (optional): Override default vendor number
-- `version` (optional): Report version (default: 1_0)
+
+Units of Product Type Identifier `1`/`1F`/`1T` are first-time downloads. For other codes see Apple's
+[Product type identifiers](https://developer.apple.com/help/app-store-connect/reference/reporting/product-type-identifiers)
+reference; live reports also contain codes such as `F3` and `F7` whose documented meanings do not obviously fit,
+so check them before relying on them. Sales units and analytics `Counts` are counted differently and will not match.
 
 **Example:**
 ```
-"Download daily sales summary for 2024-01-15"
-"Get monthly subscription detailed report for 2024-01"
-"Download yearly sales summary for 2023"
+"First-time downloads by country for app 123456789 in 2026-10"
+  -> reportDate "2026-10", appleId "123456789", productTypeIdentifier ["1F"], groupBy ["Country Code"]
 ```
 
 #### `download_finance_report`
-Download finance reports for a specific region.
+Download a finance report, unpacked to text (line-limited).
 
 **Parameters:**
 - `reportDate` (required): Report date (YYYY-MM)
 - `regionCode` (required): Region code (e.g., 'Z1' for worldwide)
+- `reportType` (optional): FINANCIAL (default) or FINANCE_DETAIL (use region `Z1`)
+- `limit` (optional): lines to return (default 200, max 2000)
 - `vendorNumber` (optional): Override default vendor number
-
-**Example:**
-```
-"Download finance report for January 2024 worldwide"
-"Get finance report for 2024-01 region Z1"
-```
 
 ### 🔧 Xcode Development Tools
 
