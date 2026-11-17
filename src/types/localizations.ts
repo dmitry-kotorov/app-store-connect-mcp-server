@@ -94,6 +94,7 @@ export interface AppStoreVersion {
     platform: string;
     versionString?: string;
     appStoreState?: string;
+    appVersionState?: string;
     copyright?: string;
     releaseType?: string;
     earliestReleaseDate?: string;

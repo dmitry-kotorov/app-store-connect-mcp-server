@@ -46,6 +46,8 @@ MCP configs point at this checkout's `dist/`. So:
   `client.getFile` / `client.downloadPresignedUrl` (both unpack and decode binary error bodies) and render
   with `shapeReport` (`src/utils/report-table.ts`) so results fit a tool result. Segment URLs are pre-signed
   S3 links — never send the API token to them.
+- List tools that can return many items return a `CompactList` (`{id, ...attributes}`, rendered one per line by
+  `formatCompact`) rather than the raw JSON:API payload, whose links/relationships dominate its size.
 
 ## IAP / subscriptions & review submissions (API 4.6)
 
