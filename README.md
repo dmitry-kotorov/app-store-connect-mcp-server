@@ -52,6 +52,7 @@ This server transforms complex App Store Connect operations into simple conversa
   - List all app store versions for an app
   - List all localizations for an app version
   - Read screenshot and app preview sets per localization (file names, checksums, delivery state)
+  - Read Product Page Optimization tests: dates, state, control version, treatments and which one was applied
   - Get specific localization details
   - Update app descriptions, keywords, and promotional text
   - Manage marketing and support URLs
@@ -424,7 +425,8 @@ Update a specific field in an app store version localization.
 
 ### 🖼️ Screenshot & Preview Tools
 
-Read-only. Sets hang off a version localization (or a custom product page localization). Get the localization id
+Read-only. Sets hang off a version localization, a custom product page localization, or a Product Page
+Optimization treatment localization. Get the localization id
 cheaply with `list_app_store_version_localizations` using `filter.locale` and
 `fields.appStoreVersionLocalizations: ["locale"]`; unfiltered, that call returns every locale's full text.
 
@@ -434,7 +436,7 @@ dimensions and delivery state. Comparing checksums across versions shows when sc
 with no sets of its own (the result is empty) shows another locale's screenshots on the store.
 
 **Parameters:**
-- `appStoreVersionLocalizationId` or `appCustomProductPageLocalizationId` (exactly one)
+- `appStoreVersionLocalizationId`, `appCustomProductPageLocalizationId` or `experimentTreatmentLocalizationId` (exactly one)
 - `screenshotDisplayType` (optional): e.g. `APP_IPHONE_65` (6.5-inch iPhone), `APP_IPHONE_67`, `APP_IPAD_PRO_3GEN_129`
 - `includeImageUrls` (optional): add a full-size PNG URL per screenshot
 
@@ -443,9 +445,39 @@ List app preview (video) sets, each with its previews: file name, size, checksum
 asset and video delivery states.
 
 **Parameters:**
-- `appStoreVersionLocalizationId` or `appCustomProductPageLocalizationId` (exactly one)
+- `appStoreVersionLocalizationId`, `appCustomProductPageLocalizationId` or `experimentTreatmentLocalizationId` (exactly one)
 - `previewType` (optional): e.g. `IPHONE_65`
 - `includeUrls` (optional): add poster image and video URLs
+
+### 🧪 Product Page Optimization Tools
+
+Read-only. Conversion results of a test are not available through the API; read them in App Store Connect.
+
+#### `list_app_store_version_experiments`
+List an app's Product Page Optimization tests, newest first: name, state, traffic share, start and end dates,
+the control version (`controlVersion`), and the treatments with their `promotedDate`. `applied` names the
+treatment that was applied to the product page, or is null. Tests created through Apple's deprecated v1
+experiments API appear here too.
+
+**Parameters:**
+- `appId` (required): The app ID
+- `state` (optional): e.g. STOPPED, COMPLETED. Filtered by the server, because Apple's own `filter[state]`
+  returned nothing for COMPLETED tests when checked
+- `since` (optional): YYYY-MM-DD; only tests still running on or after that date
+- `limit` (optional): tests to fetch (default 200, max 200)
+
+**Example:**
+```
+"Which product page tests ran or were applied since 2026-08-01 for app 123456789?"
+```
+
+#### `list_app_store_version_experiment_treatment_localizations`
+List a treatment's localizations (id, locale). Pass an id to `list_app_screenshot_sets` /
+`list_app_preview_sets` as `experimentTreatmentLocalizationId` to see what the treatment showed.
+
+**Parameters:**
+- `treatmentId` (required): from `list_app_store_version_experiments`
+- `locale` (optional): e.g. `it`
 
 ### 🎯 Custom Product Page Tools
 

@@ -25,7 +25,8 @@ import {
   ReviewHandlers,
   PurchaseHandlers,
   SubmissionHandlers,
-  ScreenshotHandlers
+  ScreenshotHandlers,
+  ExperimentHandlers
 } from './handlers/index.js';
 
 // Load environment variables
@@ -51,6 +52,7 @@ class AppStoreConnectServer {
   private purchaseHandlers: PurchaseHandlers;
   private submissionHandlers: SubmissionHandlers;
   private screenshotHandlers: ScreenshotHandlers;
+  private experimentHandlers: ExperimentHandlers;
 
   constructor() {
     this.server = new Server({
@@ -75,6 +77,7 @@ class AppStoreConnectServer {
     this.purchaseHandlers = new PurchaseHandlers(this.client);
     this.submissionHandlers = new SubmissionHandlers(this.client);
     this.screenshotHandlers = new ScreenshotHandlers(this.client);
+    this.experimentHandlers = new ExperimentHandlers(this.client);
 
     this.setupHandlers();
   }
@@ -401,7 +404,7 @@ class AppStoreConnectServer {
         },
         {
           name: "list_app_screenshot_sets",
-          description: "List the screenshot sets of a version localization (or custom product page localization), each with its screenshots in display order: file name, size, source file checksum, dimensions, delivery state. Comparing checksums across versions shows when screenshots changed. A locale with no sets of its own falls back to another locale's screenshots on the store. Get the localization id with list_app_store_version_localizations using filter.locale and fields [\"locale\"] (unfiltered it returns every locale's full text)",
+          description: "List the screenshot sets of a version localization, custom product page localization or Product Page Optimization treatment localization, each with its screenshots in display order: file name, size, source file checksum, dimensions, delivery state. Comparing checksums across versions shows when screenshots changed. A locale with no sets of its own falls back to another locale's screenshots on the store. Get the localization id with list_app_store_version_localizations using filter.locale and fields [\"locale\"] (unfiltered it returns every locale's full text)",
           inputSchema: {
             type: "object",
             properties: {
@@ -412,6 +415,10 @@ class AppStoreConnectServer {
               appCustomProductPageLocalizationId: {
                 type: "string",
                 description: "Alternatively: a custom product page localization ID"
+              },
+              experimentTreatmentLocalizationId: {
+                type: "string",
+                description: "Alternatively: a Product Page Optimization treatment localization ID (from list_app_store_version_experiment_treatment_localizations)"
               },
               screenshotDisplayType: {
                 type: "string",
@@ -428,7 +435,7 @@ class AppStoreConnectServer {
         },
         {
           name: "list_app_preview_sets",
-          description: "List the app preview (video) sets of a version localization (or custom product page localization), each with its previews: file name, size, checksum, poster frame time code, delivery states",
+          description: "List the app preview (video) sets of a version localization, custom product page localization or Product Page Optimization treatment localization, each with its previews: file name, size, checksum, poster frame time code, delivery states",
           inputSchema: {
             type: "object",
             properties: {
@@ -439,6 +446,10 @@ class AppStoreConnectServer {
               appCustomProductPageLocalizationId: {
                 type: "string",
                 description: "Alternatively: a custom product page localization ID"
+              },
+              experimentTreatmentLocalizationId: {
+                type: "string",
+                description: "Alternatively: a Product Page Optimization treatment localization ID (from list_app_store_version_experiment_treatment_localizations)"
               },
               previewType: {
                 type: "string",
@@ -451,6 +462,53 @@ class AppStoreConnectServer {
                 default: false
               }
             }
+          }
+        },
+        {
+          name: "list_app_store_version_experiments",
+          description: "List an app's Product Page Optimization tests, newest first: name, state, traffic share, start and end dates, the control version, and the treatments with their promotedDate. 'applied' names the treatment that was applied to the product page (null if none). Conversion results are not available through the API",
+          inputSchema: {
+            type: "object",
+            properties: {
+              appId: {
+                type: "string",
+                description: "The ID of the app"
+              },
+              state: {
+                type: "string",
+                enum: ["PREPARE_FOR_SUBMISSION", "READY_FOR_REVIEW", "WAITING_FOR_REVIEW", "IN_REVIEW", "ACCEPTED", "APPROVED", "REJECTED", "COMPLETED", "STOPPED"],
+                description: "Only tests in this state"
+              },
+              since: {
+                type: "string",
+                description: "Only tests still running on or after this date (YYYY-MM-DD): ended on/after it, or not ended"
+              },
+              limit: {
+                type: "number",
+                description: "Maximum number of tests to fetch (default: 200)",
+                minimum: 1,
+                maximum: 200
+              }
+            },
+            required: ["appId"]
+          }
+        },
+        {
+          name: "list_app_store_version_experiment_treatment_localizations",
+          description: "List the localizations of a Product Page Optimization treatment (id, locale). Pass an id to list_app_screenshot_sets / list_app_preview_sets as experimentTreatmentLocalizationId to see what the treatment showed",
+          inputSchema: {
+            type: "object",
+            properties: {
+              treatmentId: {
+                type: "string",
+                description: "The treatment ID (from list_app_store_version_experiments)"
+              },
+              locale: {
+                type: "string",
+                description: "Only this locale, e.g. it"
+              }
+            },
+            required: ["treatmentId"]
           }
         },
         {
@@ -1759,6 +1817,12 @@ class AppStoreConnectServer {
 
           case "list_app_preview_sets":
             return formatMediaSets(await this.screenshotHandlers.listAppPreviewSets(args as any));
+
+          case "list_app_store_version_experiments":
+            return formatCompact(await this.experimentHandlers.listAppStoreVersionExperiments(args as any));
+
+          case "list_app_store_version_experiment_treatment_localizations":
+            return formatCompact(await this.experimentHandlers.listExperimentTreatmentLocalizations(args as any));
 
           case "list_app_store_version_localizations":
             return formatResponse(await this.localizationHandlers.listAppStoreVersionLocalizations(args as any));
