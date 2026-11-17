@@ -42,6 +42,10 @@ MCP configs point at this checkout's `dist/`. So:
 - Use `sanitizeLimit(limit, max)` with the spec's real maximum; nested `limit[...]` params max out at 50.
 - API errors surface all `errors[].detail` plus `meta.associatedErrors` (review submission failures put
   per-item reasons there).
+- Report files (`/salesReports`, `/financeReports`, analytics segments) are gzip TSV: fetch with
+  `client.getFile` / `client.downloadPresignedUrl` (both unpack and decode binary error bodies) and render
+  with `shapeReport` (`src/utils/report-table.ts`) so results fit a tool result. Segment URLs are pre-signed
+  S3 links — never send the API token to them.
 
 ## IAP / subscriptions & review submissions (API 4.6)
 

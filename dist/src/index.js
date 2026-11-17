@@ -970,7 +970,7 @@ class AppStoreConnectServer {
             // Analytics & Reports Tools
             {
                 name: "create_analytics_report_request",
-                description: "Create a new analytics report request for an app",
+                description: "Create an analytics report request for an app. If Apple answers that one already exists (e.g. the app's ONGOING request), the existing request(s) are returned with alreadyExisted: true",
                 inputSchema: {
                     type: "object",
                     properties: {
@@ -989,8 +989,33 @@ class AppStoreConnectServer {
                 }
             },
             {
+                name: "list_analytics_report_requests",
+                description: "List an app's analytics report requests (id, accessType, stoppedDueToInactivity). Start of the chain: requests -> reports -> instances -> segments -> download",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        appId: {
+                            type: "string",
+                            description: "The ID of the app"
+                        },
+                        accessType: {
+                            type: "string",
+                            enum: ["ONGOING", "ONE_TIME_SNAPSHOT"],
+                            description: "Only requests of this access type"
+                        },
+                        limit: {
+                            type: "number",
+                            description: "Maximum number of requests to return (default: 50)",
+                            minimum: 1,
+                            maximum: 200
+                        }
+                    },
+                    required: ["appId"]
+                }
+            },
+            {
                 name: "list_analytics_reports",
-                description: "Get available analytics reports for a specific report request",
+                description: "List the reports of an analytics report request (id, name, category). An ONGOING request has ~200 reports (~24k characters); filter by name or category when you know what you need",
                 inputSchema: {
                     type: "object",
                     properties: {
@@ -1000,7 +1025,7 @@ class AppStoreConnectServer {
                         },
                         limit: {
                             type: "number",
-                            description: "Maximum number of reports to return (default: 100)",
+                            description: "Maximum number of reports to return (default: 200)",
                             minimum: 1,
                             maximum: 200
                         },
@@ -1009,8 +1034,12 @@ class AppStoreConnectServer {
                             properties: {
                                 category: {
                                     type: "string",
-                                    enum: ["APP_STORE_ENGAGEMENT", "APP_STORE_COMMERCE", "APP_USAGE", "FRAMEWORKS_USAGE", "PERFORMANCE"],
+                                    enum: ["APP_USAGE", "APP_STORE_ENGAGEMENT", "COMMERCE", "FRAMEWORK_USAGE", "PERFORMANCE"],
                                     description: "Filter by report category"
+                                },
+                                name: {
+                                    type: "string",
+                                    description: "Filter by exact report name, e.g. 'App Downloads Detailed'"
                                 }
                             }
                         }
@@ -1019,8 +1048,8 @@ class AppStoreConnectServer {
                 }
             },
             {
-                name: "list_analytics_report_segments",
-                description: "Get segments for a specific analytics report (contains download URLs)",
+                name: "list_analytics_report_instances",
+                description: "List the instances of an analytics report: one per granularity and processing date (not returned in date order; filter by processingDate to pick one). Each instance holds the data segments. Adjacent DAILY instances overlap (each holds about two days of data), so group by Date and take each date once rather than summing instances",
                 inputSchema: {
                     type: "object",
                     properties: {
@@ -1028,9 +1057,18 @@ class AppStoreConnectServer {
                             type: "string",
                             description: "The ID of the analytics report"
                         },
+                        granularity: {
+                            type: "string",
+                            enum: ["DAILY", "WEEKLY", "MONTHLY"],
+                            description: "Only instances of this granularity"
+                        },
+                        processingDate: {
+                            type: "string",
+                            description: "Only the instance processed on this date (YYYY-MM-DD). A DAILY instance covers the one to two days before its processing date"
+                        },
                         limit: {
                             type: "number",
-                            description: "Maximum number of segments to return (default: 100)",
+                            description: "Maximum number of instances to return (default: 200)",
                             minimum: 1,
                             maximum: 200
                         }
@@ -1039,17 +1077,66 @@ class AppStoreConnectServer {
                 }
             },
             {
-                name: "download_analytics_report_segment",
-                description: "Download data from an analytics report segment URL",
+                name: "list_analytics_report_segments",
+                description: "List the data segments of an analytics report instance (id, size, checksum). Download them with download_analytics_report_segment",
                 inputSchema: {
                     type: "object",
                     properties: {
-                        segmentUrl: {
+                        instanceId: {
                             type: "string",
-                            description: "The URL of the analytics report segment to download"
+                            description: "The ID of the analytics report instance"
+                        },
+                        limit: {
+                            type: "number",
+                            description: "Maximum number of segments to return (default: 200)",
+                            minimum: 1,
+                            maximum: 200
                         }
                     },
-                    required: ["segmentUrl"]
+                    required: ["instanceId"]
+                }
+            },
+            {
+                name: "download_analytics_report_segment",
+                description: "Download an analytics report segment (or every segment of an instance), unpacked to tab-separated text. Filter rows, pick columns or aggregate with groupBy/sum to keep the result small. A DAILY instance holds about two days that the neighbouring instances repeat; include Date in groupBy",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        segmentId: {
+                            type: "string",
+                            description: "The ID of one segment (from list_analytics_report_segments)"
+                        },
+                        instanceId: {
+                            type: "string",
+                            description: "Alternatively: the ID of an instance; all its segments are downloaded and combined"
+                        },
+                        filter: {
+                            type: "object",
+                            additionalProperties: { type: ["string", "array"], items: { type: "string" } },
+                            description: "Keep only rows whose column equals the value (or any of the values); case-insensitive. Keys are report column names as listed in the 'Columns:' line of a previous result"
+                        },
+                        groupBy: {
+                            type: "array",
+                            items: { type: "string" },
+                            description: "Aggregate: one output row per distinct combination of these columns, with the sum columns summed and a row count"
+                        },
+                        sum: {
+                            type: "array",
+                            items: { type: "string" },
+                            description: "Numeric columns to sum per group and in the totals line (default: 'Counts' when present)"
+                        },
+                        columns: {
+                            type: "array",
+                            items: { type: "string" },
+                            description: "Without groupBy: which columns to return (default: all)"
+                        },
+                        limit: {
+                            type: "number",
+                            description: "Maximum output rows (default 50, max 1000)",
+                            minimum: 1,
+                            maximum: 1000
+                        }
+                    }
                 }
             },
             // Xcode Development Tools
@@ -1354,7 +1441,7 @@ class AppStoreConnectServer {
         const paymentReportTools = [
             {
                 name: "download_sales_report",
-                description: "Download sales and trends reports",
+                description: "Download a Sales and Trends report, unpacked to tab-separated text. A monthly summary is thousands of rows: filter (appleId, countryCode, productTypeIdentifier, filter) and/or aggregate (groupBy + sum) to keep the result small. Units of Product Type Identifier 1/1F/1T are first-time app downloads; for other codes see Apple's 'Product type identifiers' reference (live reports also contain codes such as F3 and F7, whose documented meanings do not obviously fit, so check them before relying on them)",
                 inputSchema: {
                     type: "object",
                     properties: {
@@ -1365,13 +1452,13 @@ class AppStoreConnectServer {
                         },
                         reportType: {
                             type: "string",
-                            enum: ["SALES"],
+                            enum: ["SALES", "PRE_ORDER", "NEWSSTAND", "SUBSCRIPTION", "SUBSCRIPTION_EVENT", "SUBSCRIBER", "SUBSCRIPTION_OFFER_CODE_REDEMPTION", "INSTALLS", "FIRST_ANNUAL", "WIN_BACK_ELIGIBILITY"],
                             description: "Type of report to download",
                             default: "SALES"
                         },
                         reportSubType: {
                             type: "string",
-                            enum: ["SUMMARY", "DETAILED"],
+                            enum: ["SUMMARY", "DETAILED", "SUMMARY_INSTALL_TYPE", "SUMMARY_TERRITORY", "SUMMARY_CHANNEL"],
                             description: "Sub-type of the report",
                             default: "SUMMARY"
                         },
@@ -1383,7 +1470,55 @@ class AppStoreConnectServer {
                         },
                         reportDate: {
                             type: "string",
-                            description: "Report date in YYYY-MM format (e.g., '2024-01')"
+                            description: "Report date; format depends on frequency: DAILY 'YYYY-MM-DD', WEEKLY 'YYYY-MM-DD' (the Sunday that ends the week), MONTHLY 'YYYY-MM', YEARLY 'YYYY'"
+                        },
+                        version: {
+                            type: "string",
+                            description: "Report format version (filter[version]), e.g. '1_0'. Some report types (e.g. SUBSCRIPTION) require a specific version; omit for Apple's default"
+                        },
+                        appleId: {
+                            type: "string",
+                            description: "Only rows for this app/product Apple ID ('Apple Identifier' column)"
+                        },
+                        sku: {
+                            type: "string",
+                            description: "Only rows for this SKU"
+                        },
+                        countryCode: {
+                            type: "array",
+                            items: { type: "string" },
+                            description: "Only rows for these country codes, e.g. ['US', 'GB']"
+                        },
+                        productTypeIdentifier: {
+                            type: "array",
+                            items: { type: "string" },
+                            description: "Only rows with these Product Type Identifiers, e.g. ['1F'] for first-time iOS downloads"
+                        },
+                        filter: {
+                            type: "object",
+                            additionalProperties: { type: ["string", "array"], items: { type: "string" } },
+                            description: "Keep only rows whose column equals the value (or any of the values); case-insensitive. Keys are report column names as listed in the 'Columns:' line of a previous result"
+                        },
+                        groupBy: {
+                            type: "array",
+                            items: { type: "string" },
+                            description: "Aggregate: one output row per distinct combination of these columns, with the sum columns summed and a row count"
+                        },
+                        sum: {
+                            type: "array",
+                            items: { type: "string" },
+                            description: "Numeric columns to sum per group and in the totals line (default: 'Units')"
+                        },
+                        columns: {
+                            type: "array",
+                            items: { type: "string" },
+                            description: "Without groupBy: which columns to return (default: all)"
+                        },
+                        limit: {
+                            type: "number",
+                            description: "Maximum output rows (default 50, max 1000)",
+                            minimum: 1,
+                            maximum: 1000
                         }
                     },
                     required: ["reportDate"]
@@ -1391,7 +1526,7 @@ class AppStoreConnectServer {
             },
             {
                 name: "download_finance_report",
-                description: "Download finance reports for a specific region",
+                description: "Download a finance report for a region, unpacked to text (line-limited)",
                 inputSchema: {
                     type: "object",
                     properties: {
@@ -1407,6 +1542,18 @@ class AppStoreConnectServer {
                         regionCode: {
                             type: "string",
                             description: "Region code (e.g., 'Z1' for worldwide, 'WW' for Europe)"
+                        },
+                        reportType: {
+                            type: "string",
+                            enum: ["FINANCIAL", "FINANCE_DETAIL"],
+                            description: "FINANCIAL (per-region payments report) or FINANCE_DETAIL (all regions; use regionCode 'Z1')",
+                            default: "FINANCIAL"
+                        },
+                        limit: {
+                            type: "number",
+                            description: "Maximum number of lines to return (default 200, max 2000)",
+                            minimum: 1,
+                            maximum: 2000
                         }
                     },
                     required: ["reportDate", "regionCode"]
@@ -1437,6 +1584,14 @@ class AppStoreConnectServer {
                             }]
                     };
                 };
+                // Report downloads are already rendered as text (summary lines + TSV)
+                const formatText = (text) => ({
+                    content: [{ type: "text", text }]
+                });
+                // Compact list: one JSON item per line, so long lists stay readable and small
+                const formatCompact = (list) => formatText(`{"total": ${list.total ?? list.data.length}, "returned": ${list.data.length}, "data": [\n` +
+                    list.data.map(item => JSON.stringify(item)).join(',\n') +
+                    '\n]}');
                 switch (request.params.name) {
                     // App Management
                     case "list_apps":
@@ -1517,22 +1672,26 @@ class AppStoreConnectServer {
                     // Analytics & Reports
                     case "create_analytics_report_request":
                         return formatResponse(await this.analyticsHandlers.createAnalyticsReportRequest(args));
+                    case "list_analytics_report_requests":
+                        return formatCompact(await this.analyticsHandlers.listAnalyticsReportRequests(args));
                     case "list_analytics_reports":
-                        return formatResponse(await this.analyticsHandlers.listAnalyticsReports(args));
+                        return formatCompact(await this.analyticsHandlers.listAnalyticsReports(args));
+                    case "list_analytics_report_instances":
+                        return formatCompact(await this.analyticsHandlers.listAnalyticsReportInstances(args));
                     case "list_analytics_report_segments":
-                        return formatResponse(await this.analyticsHandlers.listAnalyticsReportSegments(args));
+                        return formatCompact(await this.analyticsHandlers.listAnalyticsReportSegments(args));
                     case "download_analytics_report_segment":
-                        return { toolResult: await this.analyticsHandlers.downloadAnalyticsReportSegment(args) };
+                        return formatText(await this.analyticsHandlers.downloadAnalyticsReportSegment(args));
                     case "download_sales_report":
                         if (!config.vendorNumber) {
                             throw new McpError(ErrorCode.MethodNotFound, "Sales reports are not available. Please set APP_STORE_CONNECT_VENDOR_NUMBER environment variable.");
                         }
-                        return { toolResult: await this.analyticsHandlers.downloadSalesReport(args) };
+                        return formatText(await this.analyticsHandlers.downloadSalesReport(args));
                     case "download_finance_report":
                         if (!config.vendorNumber) {
                             throw new McpError(ErrorCode.MethodNotFound, "Finance reports are not available. Please set APP_STORE_CONNECT_VENDOR_NUMBER environment variable.");
                         }
-                        return { toolResult: await this.analyticsHandlers.downloadFinanceReport(args) };
+                        return formatText(await this.analyticsHandlers.downloadFinanceReport(args));
                     // Xcode Development Tools
                     case "list_schemes":
                         return { toolResult: await this.xcodeHandlers.listSchemes(args) };
